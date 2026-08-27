@@ -1,0 +1,4 @@
+name = OmarchyLaserPointer
+description = Excalidraw-style laser pointer cursor for Omarchy
+version = 0.1
+cursors_directory = hyprcursors

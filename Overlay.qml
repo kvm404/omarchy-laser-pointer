@@ -142,9 +142,10 @@ Item {
         }
       }
 
-      // The system cursor remains in control of the underlying application;
-      // this vector head gives the active pointer the same visual language as
-      // Excalidraw's laser cursor without stealing clicks from the presenter.
+      // Keep the laser head at the real cursor hotspot even when the native
+      // theme loads successfully. Chromium, GTK, and some Qt surfaces can
+      // provide their own client cursor, so this click-through visual is what
+      // makes the presentation cursor consistent across applications.
       LaserIcon {
         id: pointerIcon
         visible: root.opened && root.service && root.service.cursorReady

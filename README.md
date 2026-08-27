@@ -41,6 +41,7 @@ cp -a omarchy-laser-pointer/manifest.json \
   omarchy-laser-pointer/Overlay.qml \
   omarchy-laser-pointer/BarWidget.qml \
   omarchy-laser-pointer/LaserIcon.qml \
+  omarchy-laser-pointer/cursor \
   omarchy-laser-pointer/README.md \
   omarchy-laser-pointer/LICENSE \
   ~/.config/omarchy/plugins/io.github.kvm404.laser-pointer/
@@ -49,9 +50,10 @@ omarchy-shell shell rescanPlugins
 omarchy plugin enable io.github.kvm404.laser-pointer --section right
 ```
 
-The plugin is unsandboxed, like all Omarchy shell plugins. This MVP only uses
-the installed `hyprctl` command to read the pointer position and has no
-additional runtime dependency.
+The plugin is unsandboxed, like all Omarchy shell plugins. It reads the pointer
+position with `hyprctl` and installs its bundled Hyprcursor theme into
+`~/.local/share/icons/` while laser mode is active. The theme is removed from
+use with a Hyprland reload when laser mode is turned off.
 
 ## Visual reference
 
@@ -59,6 +61,11 @@ The bar icon and on-screen pointer head use the vector geometry from
 Excalidraw's [`laserPointerToolIcon`](https://github.com/excalidraw/excalidraw/blob/master/packages/excalidraw/components/icons.tsx).
 The trail is rendered as one continuous smoothed path so fast movement does
 not create adjacent-looking strokes.
+
+The native cursor theme is best-effort because Wayland clients may provide
+their own cursor surface. The click-through overlay remains at the same
+hotspot to keep the laser cursor visible in those applications and in screen
+shares without intercepting clicks.
 
 ## Development checks
 
