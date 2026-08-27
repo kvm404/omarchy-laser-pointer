@@ -56,6 +56,10 @@ option while laser mode is active. This hides cursor surfaces supplied by
 Wayland clients without changing input routing; turning the mode off sets the
 option back to `false`.
 
+The overlay registers a Hyprland layer-order rule at startup and uses a bounded,
+click-through XDG popup for the active trail and laser head. This keeps the
+laser visible above Omarchy's popup and overlay widgets while it is active.
+
 ## Visual reference
 
 The bar icon and on-screen pointer head use the vector geometry from

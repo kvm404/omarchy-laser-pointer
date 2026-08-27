@@ -11,6 +11,9 @@ Item {
   property var manifest: null
   property var service: null
   readonly property string pluginId: "io.github.kvm404.laser-pointer"
+  readonly property string layerRuleCommand:
+    "hl.layer_rule({ name = \"omarchy-laser-pointer-above-widgets\", "
+    + "match = { namespace = \"" + root.pluginId + "\" }, order = -1000 })"
   property bool opened: false
 
   function open(payloadJson) {
@@ -65,6 +68,11 @@ Item {
       mask: Region {}
 
       readonly property var monitor: Hyprland.monitorFor(modelData)
+      readonly property bool cursorOnMonitor: root.service && monitor
+        && root.service.cursorX >= monitor.x
+        && root.service.cursorX < monitor.x + monitor.width
+        && root.service.cursorY >= monitor.y
+        && root.service.cursorY < monitor.y + monitor.height
 
       Canvas {
         id: trailCanvas
@@ -161,30 +169,160 @@ Item {
         }
       }
 
-      // Keep the laser head at the real cursor hotspot. Service.qml hides the
-      // compositor cursor while active, so this is the only visible pointer.
-      LaserIcon {
-        id: pointerIcon
+      // A bounded XDG popup follows the hotspot so the laser remains above
+      // Omarchy PopupCard windows without covering the screen with input.
+      PopupWindow {
+        id: pointerPopup
         visible: root.opened && root.service && root.service.cursorReady
-        x: root.service ? root.service.cursorX - pointerWindow.monitor.x : 0
-        y: root.service ? root.service.cursorY - pointerWindow.monitor.y : 0
-        iconSize: 20
-        color: "#ffffff"
-        z: 2
-      }
+          && pointerWindow.cursorOnMonitor
+        color: "transparent"
+        implicitWidth: 320
+        implicitHeight: 320
+        mask: Region {}
 
-      Rectangle {
-        visible: pointerIcon.visible
-        x: pointerIcon.x + 1
-        y: pointerIcon.y + 1
-        width: 4
-        height: width
-        radius: width / 2
-        color: root.service ? root.service.color : "#ff3b30"
-        z: 3
+        anchor {
+          id: pointerAnchor
+          window: pointerWindow
+          edges: Edges.Top | Edges.Left
+          gravity: Edges.Top | Edges.Left
+          rect.x: root.service && pointerWindow.monitor
+            ? Math.max(0, Math.min(
+                root.service.cursorX - pointerWindow.monitor.x - pointerPopup.implicitWidth / 2,
+                Math.max(0, pointerWindow.monitor.width - pointerPopup.implicitWidth)))
+            : 0
+          rect.y: root.service && pointerWindow.monitor
+            ? Math.max(0, Math.min(
+                root.service.cursorY - pointerWindow.monitor.y - pointerPopup.implicitHeight / 2,
+                Math.max(0, pointerWindow.monitor.height - pointerPopup.implicitHeight)))
+            : 0
+          rect.width: 1
+          rect.height: 1
+        }
+
+        Canvas {
+          id: popupTrailCanvas
+          anchors.fill: parent
+          renderTarget: Canvas.FramebufferObject
+
+          function pointOnMonitor(point) {
+            return pointerWindow.monitor && point.x >= pointerWindow.monitor.x
+              && point.x < pointerWindow.monitor.x + pointerWindow.monitor.width
+              && point.y >= pointerWindow.monitor.y
+              && point.y < pointerWindow.monitor.y + pointerWindow.monitor.height
+          }
+
+          onPaint: {
+            var context = getContext("2d")
+            context.clearRect(0, 0, width, height)
+
+            if (!root.opened || !root.service || !pointerWindow.monitor) return
+
+            var points = root.service.trailPoints
+            var now = Date.now()
+            var lifetime = root.service.trailLifetimeMs
+            var strokeColor = root.service.color
+            var popupX = pointerWindow.monitor.x + pointerAnchor.rect.x
+            var popupY = pointerWindow.monitor.y + pointerAnchor.rect.y
+
+            context.lineCap = "round"
+            context.lineJoin = "round"
+
+            var runStart = -1
+            for (var i = 0; i <= points.length; i++) {
+              var inRun = i < points.length && pointOnMonitor(points[i])
+              if (inRun) {
+                if (runStart < 0) runStart = i
+                continue
+              }
+
+              if (runStart < 0) continue
+
+              var runEnd = i - 1
+              if (runEnd >= runStart) {
+                var newest = points[runEnd]
+                var fade = Math.max(0, 1 - (now - newest.time) / lifetime)
+                if (fade > 0) {
+                  var first = points[runStart]
+                  context.beginPath()
+                  context.moveTo(first.x - popupX, first.y - popupY)
+
+                  if (runEnd === runStart) {
+                    context.lineTo(first.x - popupX, first.y - popupY)
+                  } else {
+                    for (var j = runStart + 1; j <= runEnd; j++) {
+                      var current = points[j]
+                      var next = j < runEnd ? points[j + 1] : current
+                      var endX = j < runEnd ? (current.x + next.x) / 2 : current.x
+                      var endY = j < runEnd ? (current.y + next.y) / 2 : current.y
+
+                      context.quadraticCurveTo(
+                        current.x - popupX,
+                        current.y - popupY,
+                        endX - popupX,
+                        endY - popupY)
+                    }
+                  }
+
+                  context.strokeStyle = Qt.rgba(
+                    strokeColor.r,
+                    strokeColor.g,
+                    strokeColor.b,
+                    fade * 0.92)
+                  context.lineWidth = 2.6
+                  context.stroke()
+                }
+              }
+
+              runStart = -1
+            }
+          }
+
+          Timer {
+            interval: 33
+            repeat: true
+            running: root.opened
+            onTriggered: popupTrailCanvas.requestPaint()
+          }
+
+          Connections {
+            target: root.service
+            function onTrailPointsChanged() { popupTrailCanvas.requestPaint() }
+          }
+        }
+
+        // Keep the laser head at the real cursor hotspot. Service.qml hides the
+        // compositor cursor while active, so this is the only visible pointer.
+        LaserIcon {
+          id: pointerIcon
+          x: root.service && pointerWindow.monitor
+            ? root.service.cursorX - pointerWindow.monitor.x - pointerAnchor.rect.x
+            : 0
+          y: root.service && pointerWindow.monitor
+            ? root.service.cursorY - pointerWindow.monitor.y - pointerAnchor.rect.y
+            : 0
+          iconSize: 20
+          color: "#ffffff"
+        }
+
+        Rectangle {
+          x: pointerIcon.x + 1
+          y: pointerIcon.y + 1
+          width: 4
+          height: width
+          radius: width / 2
+          color: root.service ? root.service.color : "#ff3b30"
+          z: 3
+        }
       }
     }
   }
+
+  Process {
+    id: layerOrderProcess
+    command: ["hyprctl", "eval", root.layerRuleCommand]
+  }
+
+  Component.onCompleted: layerOrderProcess.running = true
 
   Process {
     id: cursorVisibilityProcess

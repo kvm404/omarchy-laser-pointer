@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.kvm404.laser-pointer",
   "name": "Laser Pointer",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "author": "kvm404",
   "description": "A click-through presentation laser pointer for the Omarchy bar.",
   "kinds": [
