@@ -31,7 +31,7 @@ Item {
       id: pointerWindow
       required property var modelData
       screen: modelData
-      visible: root.opened && root.service && root.service.cursorReady
+      visible: root.opened
       color: "transparent"
       anchors {
         top: true
@@ -47,57 +47,79 @@ Item {
       mask: Region {}
 
       readonly property var monitor: Hyprland.monitorFor(modelData)
-      readonly property bool cursorOnMonitor: monitor && root.service
-        && root.service.cursorX >= monitor.x
-        && root.service.cursorX < monitor.x + monitor.width
-        && root.service.cursorY >= monitor.y
-        && root.service.cursorY < monitor.y + monitor.height
-      readonly property real localCursorX: root.service ? root.service.cursorX - (monitor ? monitor.x : 0) : 0
-      readonly property real localCursorY: root.service ? root.service.cursorY - (monitor ? monitor.y : 0) : 0
+      Canvas {
+        id: trailCanvas
+        anchors.fill: parent
+        renderTarget: Canvas.FramebufferObject
 
-      Item {
-        id: pointer
-        visible: pointerWindow.cursorOnMonitor
-        x: pointerWindow.localCursorX - width / 2
-        y: pointerWindow.localCursorY - height / 2
-        width: 38
-        height: 38
-
-        Rectangle {
-          anchors.fill: parent
-          radius: width / 2
-          color: "transparent"
-          border.width: 2
-          border.color: "#ffffff"
-          opacity: 0.92
+        function pointOnMonitor(point) {
+          return pointerWindow.monitor && point.x >= pointerWindow.monitor.x
+            && point.x < pointerWindow.monitor.x + pointerWindow.monitor.width
+            && point.y >= pointerWindow.monitor.y
+            && point.y < pointerWindow.monitor.y + pointerWindow.monitor.height
         }
 
-        Rectangle {
-          anchors.fill: parent
-          anchors.margins: 3
-          radius: width / 2
-          color: "transparent"
-          border.width: 3
-          border.color: root.service ? root.service.color : "#ff3b30"
-          opacity: 0.98
+        function easeOut(value) {
+          var clamped = Math.max(0, Math.min(1, value))
+          return 1 - Math.pow(1 - clamped, 2)
         }
 
-        Rectangle {
-          anchors.centerIn: parent
-          width: 10
-          height: 10
-          radius: width / 2
-          color: root.service ? root.service.color : "#ff3b30"
-          border.width: 1
-          border.color: "#ffffff"
+        onPaint: {
+          var context = getContext("2d")
+          context.clearRect(0, 0, width, height)
+
+          if (!root.opened || !root.service || !pointerWindow.monitor) return
+
+          var points = root.service.trailPoints
+          var now = Date.now()
+          var lifetime = root.service.trailLifetimeMs
+          var strokeColor = root.service.color
+
+          context.lineCap = "round"
+          context.lineJoin = "round"
+
+          for (var i = 1; i < points.length; i++) {
+            var previous = points[i - 1]
+            var control = points[i]
+            if (!pointOnMonitor(previous) || !pointOnMonitor(control)) continue
+
+            var age = Math.max(0, now - control.time)
+            var fade = Math.max(0, 1 - age / lifetime)
+            if (fade <= 0) continue
+
+            // Excalidraw's trail tapers from the oldest point toward the
+            // current cursor head. Midpoints plus quadratic curves keep the
+            // result smooth even though cursorpos is sampled at 30 Hz.
+            var startX = i === 1 ? previous.x : (points[i - 2].x + previous.x) / 2
+            var startY = i === 1 ? previous.y : (points[i - 2].y + previous.y) / 2
+            var endX = i === points.length - 1 ? control.x : (control.x + points[i + 1].x) / 2
+            var endY = i === points.length - 1 ? control.y : (control.y + points[i + 1].y) / 2
+            var lengthFade = easeOut(i / Math.max(1, points.length - 1))
+            var strength = Math.min(fade, lengthFade)
+
+            context.beginPath()
+            context.moveTo(startX - pointerWindow.monitor.x, startY - pointerWindow.monitor.y)
+            context.quadraticCurveTo(
+              control.x - pointerWindow.monitor.x,
+              control.y - pointerWindow.monitor.y,
+              endX - pointerWindow.monitor.x,
+              endY - pointerWindow.monitor.y)
+            context.strokeStyle = Qt.rgba(strokeColor.r, strokeColor.g, strokeColor.b, strength)
+            context.lineWidth = 0.7 + strength * 2.4
+            context.stroke()
+          }
         }
 
-        Rectangle {
-          anchors.centerIn: parent
-          width: 2
-          height: 2
-          radius: 1
-          color: "#ffffff"
+        Timer {
+          interval: 33
+          repeat: true
+          running: root.opened
+          onTriggered: trailCanvas.requestPaint()
+        }
+
+        Connections {
+          target: root.service
+          function onTrailPointsChanged() { trailCanvas.requestPaint() }
         }
       }
     }

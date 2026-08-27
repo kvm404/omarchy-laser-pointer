@@ -15,6 +15,8 @@ Item {
   property int cursorX: 0
   property int cursorY: 0
   property bool cursorReady: false
+  property var trailPoints: []
+  readonly property int trailLifetimeMs: 1000
 
   function toggle() {
     if (root.shell && typeof root.shell.toggle === "function") {
@@ -31,6 +33,21 @@ Item {
     if (!cursorProcess.running) cursorProcess.running = true
   }
 
+  function appendTrailPoint(x, y) {
+    var now = Date.now()
+    var next = root.trailPoints.slice()
+
+    while (next.length > 0 && now - next[0].time > root.trailLifetimeMs)
+      next.shift()
+
+    next.push({ x: x, y: y, time: now })
+    root.trailPoints = next
+  }
+
+  function clearTrail() {
+    root.trailPoints = []
+  }
+
   function updateCursor(raw) {
     var output = String(raw || "").trim()
     if (!output) return
@@ -38,9 +55,17 @@ Item {
     try {
       var position = JSON.parse(output)
       if (position && isFinite(Number(position.x)) && isFinite(Number(position.y))) {
-        root.cursorX = Math.round(Number(position.x))
-        root.cursorY = Math.round(Number(position.y))
+        var nextX = Math.round(Number(position.x))
+        var nextY = Math.round(Number(position.y))
+        var moved = root.cursorReady && (nextX !== root.cursorX || nextY !== root.cursorY)
+
+        root.cursorX = nextX
+        root.cursorY = nextY
         root.cursorReady = true
+
+        // Excalidraw leaves ink only while the pointer is moving. The normal
+        // system cursor remains visible at the current head position.
+        if (root.active && moved) root.appendTrailPoint(nextX, nextY)
       }
     } catch (error) {
       // Keep the last valid position. A transient hyprctl failure should not
@@ -69,5 +94,8 @@ Item {
     }
   }
 
-  onActiveChanged: if (root.active) root.refreshCursor()
+  onActiveChanged: {
+    if (root.active) root.refreshCursor()
+    else root.clearTrail()
+  }
 }

@@ -1,15 +1,15 @@
 # Omarchy Laser Pointer
 
-A presentation laser pointer for the Omarchy bar. It draws a visible,
-click-through reticle at the current cursor position on every monitor, so it
-can be used while screensharing or presenting without stealing input from the
-application underneath.
+A presentation laser pointer for the Omarchy bar. It draws a short-lived,
+fading, click-through trail behind cursor movement on every monitor, matching
+the laser tool behavior in Excalidraw. The normal system cursor remains
+visible, and the overlay never steals input from the application underneath.
 
 ## MVP controls
 
 - Left-click the bar widget to open the controls.
 - Choose red, orange, yellow, green, blue, purple, or white.
-- Use **Turn on pointer** / **Turn off pointer** to control the overlay.
+- Use **Turn on pointer** / **Turn off pointer** to control laser mode.
 - Right-click the bar widget for a quick toggle.
 
 The selected color is persisted in Omarchy's `shell.json`. The pointer state is
@@ -58,7 +58,7 @@ qmllint -I "$OMARCHY_PATH/shell" \
 
 ## Current scope
 
-This first version intentionally keeps the interaction small: one reticle,
+This first version intentionally keeps the interaction small: one fading trail,
 seven colors, a bar toggle, and multi-monitor placement. Keyboard shortcuts,
-trails, custom sizes, and publishing artwork can follow after the local MVP is
-proven in real presentations.
+custom trail sizes, pressure-sensitive tapering, and publishing artwork can
+follow after the local MVP is proven in real presentations.
