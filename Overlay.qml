@@ -70,9 +70,9 @@ Item {
       readonly property var monitor: Hyprland.monitorFor(modelData)
       readonly property bool cursorOnMonitor: root.service && monitor
         && root.service.cursorX >= monitor.x
-        && root.service.cursorX < monitor.x + monitor.width
+        && root.service.cursorX < monitor.x + pointerWindow.width
         && root.service.cursorY >= monitor.y
-        && root.service.cursorY < monitor.y + monitor.height
+        && root.service.cursorY < monitor.y + pointerWindow.height
 
       Canvas {
         id: trailCanvas
@@ -81,9 +81,9 @@ Item {
 
         function pointOnMonitor(point) {
           return pointerWindow.monitor && point.x >= pointerWindow.monitor.x
-            && point.x < pointerWindow.monitor.x + pointerWindow.monitor.width
+            && point.x < pointerWindow.monitor.x + pointerWindow.width
             && point.y >= pointerWindow.monitor.y
-            && point.y < pointerWindow.monitor.y + pointerWindow.monitor.height
+            && point.y < pointerWindow.monitor.y + pointerWindow.height
         }
 
         onPaint: {
@@ -183,12 +183,12 @@ Item {
         relativeX: root.service && pointerWindow.monitor
           ? Math.max(0, Math.min(
               root.service.cursorX - pointerWindow.monitor.x - pointerPopup.implicitWidth / 2,
-              Math.max(0, pointerWindow.monitor.width - pointerPopup.implicitWidth)))
+              Math.max(0, pointerWindow.width - pointerPopup.implicitWidth)))
           : 0
         relativeY: root.service && pointerWindow.monitor
           ? Math.max(0, Math.min(
               root.service.cursorY - pointerWindow.monitor.y - pointerPopup.implicitHeight / 2,
-              Math.max(0, pointerWindow.monitor.height - pointerPopup.implicitHeight)))
+              Math.max(0, pointerWindow.height - pointerPopup.implicitHeight)))
           : 0
 
         // Keep the laser head at the real cursor hotspot. Service.qml hides the
