@@ -59,11 +59,6 @@ Item {
             && point.y < pointerWindow.monitor.y + pointerWindow.monitor.height
         }
 
-        function easeOut(value) {
-          var clamped = Math.max(0, Math.min(1, value))
-          return 1 - Math.pow(1 - clamped, 2)
-        }
-
         onPaint: {
           var context = getContext("2d")
           context.clearRect(0, 0, width, height)
@@ -74,39 +69,63 @@ Item {
           var now = Date.now()
           var lifetime = root.service.trailLifetimeMs
           var strokeColor = root.service.color
+          var monitorX = pointerWindow.monitor.x
+          var monitorY = pointerWindow.monitor.y
 
           context.lineCap = "round"
           context.lineJoin = "round"
 
-          for (var i = 1; i < points.length; i++) {
-            var previous = points[i - 1]
-            var control = points[i]
-            if (!pointOnMonitor(previous) || !pointOnMonitor(control)) continue
+          // Build one continuous path for each on-screen run. The previous
+          // renderer stroked every curve section independently; at high
+          // cursor speeds those differently-sized round caps could read as a
+          // second line alongside the real trail.
+          var runStart = -1
+          for (var i = 0; i <= points.length; i++) {
+            var inRun = i < points.length && pointOnMonitor(points[i])
+            if (inRun) {
+              if (runStart < 0) runStart = i
+              continue
+            }
 
-            var age = Math.max(0, now - control.time)
-            var fade = Math.max(0, 1 - age / lifetime)
-            if (fade <= 0) continue
+            if (runStart < 0) continue
 
-            // Excalidraw's trail tapers from the oldest point toward the
-            // current cursor head. Midpoints plus quadratic curves keep the
-            // result smooth even though cursorpos is sampled at 30 Hz.
-            var startX = i === 1 ? previous.x : (points[i - 2].x + previous.x) / 2
-            var startY = i === 1 ? previous.y : (points[i - 2].y + previous.y) / 2
-            var endX = i === points.length - 1 ? control.x : (control.x + points[i + 1].x) / 2
-            var endY = i === points.length - 1 ? control.y : (control.y + points[i + 1].y) / 2
-            var lengthFade = easeOut(i / Math.max(1, points.length - 1))
-            var strength = Math.min(fade, lengthFade)
+            var runEnd = i - 1
+            if (runEnd >= runStart) {
+              var newest = points[runEnd]
+              var fade = Math.max(0, 1 - (now - newest.time) / lifetime)
+              if (fade > 0) {
+                var first = points[runStart]
+                context.beginPath()
+                context.moveTo(first.x - monitorX, first.y - monitorY)
 
-            context.beginPath()
-            context.moveTo(startX - pointerWindow.monitor.x, startY - pointerWindow.monitor.y)
-            context.quadraticCurveTo(
-              control.x - pointerWindow.monitor.x,
-              control.y - pointerWindow.monitor.y,
-              endX - pointerWindow.monitor.x,
-              endY - pointerWindow.monitor.y)
-            context.strokeStyle = Qt.rgba(strokeColor.r, strokeColor.g, strokeColor.b, strength)
-            context.lineWidth = 0.7 + strength * 2.4
-            context.stroke()
+                if (runEnd === runStart) {
+                  context.lineTo(first.x - monitorX, first.y - monitorY)
+                } else {
+                  for (var j = runStart + 1; j <= runEnd; j++) {
+                    var current = points[j]
+                    var next = j < runEnd ? points[j + 1] : current
+                    var endX = j < runEnd ? (current.x + next.x) / 2 : current.x
+                    var endY = j < runEnd ? (current.y + next.y) / 2 : current.y
+
+                    context.quadraticCurveTo(
+                      current.x - monitorX,
+                      current.y - monitorY,
+                      endX - monitorX,
+                      endY - monitorY)
+                  }
+                }
+
+                context.strokeStyle = Qt.rgba(
+                  strokeColor.r,
+                  strokeColor.g,
+                  strokeColor.b,
+                  fade * 0.92)
+                context.lineWidth = 2.6
+                context.stroke()
+              }
+            }
+
+            runStart = -1
           }
         }
 
@@ -121,6 +140,30 @@ Item {
           target: root.service
           function onTrailPointsChanged() { trailCanvas.requestPaint() }
         }
+      }
+
+      // The system cursor remains in control of the underlying application;
+      // this vector head gives the active pointer the same visual language as
+      // Excalidraw's laser cursor without stealing clicks from the presenter.
+      LaserIcon {
+        id: pointerIcon
+        visible: root.opened && root.service && root.service.cursorReady
+        x: root.service ? root.service.cursorX - pointerWindow.monitor.x : 0
+        y: root.service ? root.service.cursorY - pointerWindow.monitor.y : 0
+        iconSize: 20
+        color: "#ffffff"
+        z: 2
+      }
+
+      Rectangle {
+        visible: pointerIcon.visible
+        x: pointerIcon.x + 1
+        y: pointerIcon.y + 1
+        width: 4
+        height: width
+        radius: width / 2
+        color: root.service ? root.service.color : "#ff3b30"
+        z: 3
       }
     }
   }

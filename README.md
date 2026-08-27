@@ -2,8 +2,8 @@
 
 A presentation laser pointer for the Omarchy bar. It draws a short-lived,
 fading, click-through trail behind cursor movement on every monitor, matching
-the laser tool behavior in Excalidraw. The normal system cursor remains
-visible, and the overlay never steals input from the application underneath.
+the laser tool behavior in Excalidraw. The overlay adds an Excalidraw-shaped
+laser head at the cursor without stealing input from the application underneath.
 
 ## MVP controls
 
@@ -32,11 +32,18 @@ omarchy plugin enable io.github.kvm404.laser-pointer --section right
 
 ## Local development
 
-Copy the plugin directory into Omarchy's user plugin directory, then rescan:
+Copy the plugin files into Omarchy's user plugin directory, then rescan:
 
 ```bash
 mkdir -p ~/.config/omarchy/plugins/io.github.kvm404.laser-pointer
-cp -a omarchy-laser-pointer/. ~/.config/omarchy/plugins/io.github.kvm404.laser-pointer/
+cp -a omarchy-laser-pointer/manifest.json \
+  omarchy-laser-pointer/Service.qml \
+  omarchy-laser-pointer/Overlay.qml \
+  omarchy-laser-pointer/BarWidget.qml \
+  omarchy-laser-pointer/LaserIcon.qml \
+  omarchy-laser-pointer/README.md \
+  omarchy-laser-pointer/LICENSE \
+  ~/.config/omarchy/plugins/io.github.kvm404.laser-pointer/
 omarchy plugin validate ~/.config/omarchy/plugins/io.github.kvm404.laser-pointer
 omarchy-shell shell rescanPlugins
 omarchy plugin enable io.github.kvm404.laser-pointer --section right
@@ -45,6 +52,13 @@ omarchy plugin enable io.github.kvm404.laser-pointer --section right
 The plugin is unsandboxed, like all Omarchy shell plugins. This MVP only uses
 the installed `hyprctl` command to read the pointer position and has no
 additional runtime dependency.
+
+## Visual reference
+
+The bar icon and on-screen pointer head use the vector geometry from
+Excalidraw's [`laserPointerToolIcon`](https://github.com/excalidraw/excalidraw/blob/master/packages/excalidraw/components/icons.tsx).
+The trail is rendered as one continuous smoothed path so fast movement does
+not create adjacent-looking strokes.
 
 ## Development checks
 

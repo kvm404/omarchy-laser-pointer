@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Shapes
 import Quickshell
 import qs.Commons
 import qs.Ui
@@ -75,35 +76,24 @@ BarWidget {
 
     Item {
       anchors.centerIn: parent
-      width: Style.space(22)
+      width: Style.space(20)
       height: width
 
-      Rectangle {
+      LaserIcon {
         anchors.fill: parent
-        radius: width / 2
-        color: "transparent"
-        border.width: 1
-        border.color: root.laserService && root.laserService.active
-          ? root.selectedColor
-          : button.foreground
-        opacity: root.laserService && root.laserService.active ? 0.95 : 0.6
+        color: button.foreground
+        opacity: root.laserService && root.laserService.active ? 1 : 0.62
       }
 
+      // Excalidraw's cursor has a small coloured laser head at the hotspot.
       Rectangle {
-        anchors.centerIn: parent
-        width: Style.space(8)
+        x: Style.space(1)
+        y: Style.space(1)
+        width: Style.space(3)
         height: width
         radius: width / 2
         color: root.selectedColor
-        opacity: root.laserService && root.laserService.active ? 1 : 0.7
-      }
-
-      Rectangle {
-        anchors.centerIn: parent
-        width: Style.space(2)
-        height: Style.space(2)
-        radius: width / 2
-        color: "#ffffff"
+        opacity: root.laserService && root.laserService.active ? 1 : 0.85
       }
     }
   }
