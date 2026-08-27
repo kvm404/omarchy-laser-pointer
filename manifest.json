@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.kvm404.laser-pointer",
+  "name": "Laser Pointer",
+  "version": "0.1.0",
+  "author": "kvm404",
+  "description": "A click-through presentation laser pointer for the Omarchy bar.",
+  "kinds": [
+    "service",
+    "bar-widget",
+    "overlay"
+  ],
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "BarWidget.qml",
+    "overlay": "Overlay.qml"
+  },
+  "barWidget": {
+    "displayName": "Laser Pointer",
+    "description": "Toggle a screen-sharing laser pointer and choose its color.",
+    "category": "Presentation",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "color": "#ff3b30"
+    }
+  }
+}
