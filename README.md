@@ -2,8 +2,9 @@
 
 A presentation laser pointer for the Omarchy bar. It draws a short-lived,
 fading, click-through trail behind cursor movement on every monitor, matching
-the laser tool behavior in Excalidraw. The overlay adds an Excalidraw-shaped
-laser head at the cursor without stealing input from the application underneath.
+the laser tool behavior in Excalidraw. While laser mode is on, Hyprland hides
+the real cursor and the overlay renders the Excalidraw-shaped laser head, so
+only one pointer is visible. Turning laser mode off restores the normal cursor.
 
 ## MVP controls
 
@@ -41,7 +42,6 @@ cp -a omarchy-laser-pointer/manifest.json \
   omarchy-laser-pointer/Overlay.qml \
   omarchy-laser-pointer/BarWidget.qml \
   omarchy-laser-pointer/LaserIcon.qml \
-  omarchy-laser-pointer/cursor \
   omarchy-laser-pointer/README.md \
   omarchy-laser-pointer/LICENSE \
   ~/.config/omarchy/plugins/io.github.kvm404.laser-pointer/
@@ -51,9 +51,10 @@ omarchy plugin enable io.github.kvm404.laser-pointer --section right
 ```
 
 The plugin is unsandboxed, like all Omarchy shell plugins. It reads the pointer
-position with `hyprctl` and installs its bundled Hyprcursor theme into
-`~/.local/share/icons/` while laser mode is active. The theme is removed from
-use with a Hyprland reload when laser mode is turned off.
+position with `hyprctl` and uses Hyprland's [`cursor:invisible`](https://wiki.hypr.land/Configuring/Basics/Variables/#cursor)
+option while laser mode is active. This hides cursor surfaces supplied by
+Wayland clients without changing input routing; turning the mode off sets the
+option back to `false`.
 
 ## Visual reference
 
@@ -62,10 +63,9 @@ Excalidraw's [`laserPointerToolIcon`](https://github.com/excalidraw/excalidraw/b
 The trail is rendered as one continuous smoothed path so fast movement does
 not create adjacent-looking strokes.
 
-The native cursor theme is best-effort because Wayland clients may provide
-their own cursor surface. The click-through overlay remains at the same
-hotspot to keep the laser cursor visible in those applications and in screen
-shares without intercepting clicks.
+Hyprland's compositor-level cursor visibility switch is important here:
+changing only the compositor theme cannot suppress a cursor surface already
+provided by a client such as Chromium or GTK.
 
 ## Development checks
 

@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Hyprland
 import Quickshell.Wayland
 
@@ -14,16 +15,33 @@ Item {
 
   function open(payloadJson) {
     root.opened = true
-    if (root.service) root.service.active = true
+    root.setCursorHidden(true)
+    if (root.service) {
+      root.service.active = true
+    }
   }
 
   function close() {
     root.opened = false
-    if (root.service) root.service.active = false
+    root.setCursorHidden(false)
+    if (root.service) {
+      root.service.active = false
+    }
   }
 
-  // One passive layer-shell surface per output. An empty input region is
-  // essential: the pointer must remain usable while presenting.
+  function setCursorHidden(hidden) {
+    if (cursorVisibilityProcess.running) cursorVisibilityProcess.running = false
+
+    cursorVisibilityProcess.command = [
+      "hyprctl",
+      "eval",
+      "hl.config({ cursor = { invisible = " + (hidden ? "true" : "false") + " } })"
+    ]
+    cursorVisibilityProcess.running = true
+  }
+
+  // One passive layer-shell surface per output. The empty input region keeps
+  // the pointer usable while the compositor hides the real cursor.
   Variants {
     model: Quickshell.screens
 
@@ -47,6 +65,7 @@ Item {
       mask: Region {}
 
       readonly property var monitor: Hyprland.monitorFor(modelData)
+
       Canvas {
         id: trailCanvas
         anchors.fill: parent
@@ -142,10 +161,8 @@ Item {
         }
       }
 
-      // Keep the laser head at the real cursor hotspot even when the native
-      // theme loads successfully. Chromium, GTK, and some Qt surfaces can
-      // provide their own client cursor, so this click-through visual is what
-      // makes the presentation cursor consistent across applications.
+      // Keep the laser head at the real cursor hotspot. Service.qml hides the
+      // compositor cursor while active, so this is the only visible pointer.
       LaserIcon {
         id: pointerIcon
         visible: root.opened && root.service && root.service.cursorReady
@@ -167,5 +184,22 @@ Item {
         z: 3
       }
     }
+  }
+
+  Process {
+    id: cursorVisibilityProcess
+    command: [
+      "hyprctl",
+      "eval",
+      "hl.config({ cursor = { invisible = false } })"
+    ]
+  }
+
+  Component.onDestruction: if (root.opened) {
+    Quickshell.execDetached([
+      "hyprctl",
+      "eval",
+      "hl.config({ cursor = { invisible = false } })"
+    ])
   }
 }
