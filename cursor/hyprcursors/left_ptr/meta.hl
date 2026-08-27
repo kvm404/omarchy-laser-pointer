@@ -1,9 +1,0 @@
-resize_algorithm = bilinear
-hotspot_x = 0.0
-hotspot_y = 0.0
-define_override = arrow
-define_override = default
-define_override = left_ptr
-define_override = pointer
-define_override = top_left_arrow
-define_size = 24, laser-pointer.svg
