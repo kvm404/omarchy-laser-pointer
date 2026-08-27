@@ -180,24 +180,17 @@ Item {
         implicitHeight: 320
         mask: Region {}
 
-        anchor {
-          id: pointerAnchor
-          window: pointerWindow
-          edges: Edges.Top | Edges.Left
-          gravity: Edges.Top | Edges.Left
-          rect.x: root.service && pointerWindow.monitor
-            ? Math.max(0, Math.min(
-                root.service.cursorX - pointerWindow.monitor.x - pointerPopup.implicitWidth / 2,
-                Math.max(0, pointerWindow.monitor.width - pointerPopup.implicitWidth)))
-            : 0
-          rect.y: root.service && pointerWindow.monitor
-            ? Math.max(0, Math.min(
-                root.service.cursorY - pointerWindow.monitor.y - pointerPopup.implicitHeight / 2,
-                Math.max(0, pointerWindow.monitor.height - pointerPopup.implicitHeight)))
-            : 0
-          rect.width: 1
-          rect.height: 1
-        }
+        parentWindow: pointerWindow
+        relativeX: root.service && pointerWindow.monitor
+          ? Math.max(0, Math.min(
+              root.service.cursorX - pointerWindow.monitor.x - pointerPopup.implicitWidth / 2,
+              Math.max(0, pointerWindow.monitor.width - pointerPopup.implicitWidth)))
+          : 0
+        relativeY: root.service && pointerWindow.monitor
+          ? Math.max(0, Math.min(
+              root.service.cursorY - pointerWindow.monitor.y - pointerPopup.implicitHeight / 2,
+              Math.max(0, pointerWindow.monitor.height - pointerPopup.implicitHeight)))
+          : 0
 
         Canvas {
           id: popupTrailCanvas
@@ -221,8 +214,8 @@ Item {
             var now = Date.now()
             var lifetime = root.service.trailLifetimeMs
             var strokeColor = root.service.color
-            var popupX = pointerWindow.monitor.x + pointerAnchor.rect.x
-            var popupY = pointerWindow.monitor.y + pointerAnchor.rect.y
+            var popupX = pointerWindow.monitor.x + pointerPopup.relativeX
+            var popupY = pointerWindow.monitor.y + pointerPopup.relativeY
 
             context.lineCap = "round"
             context.lineJoin = "round"
@@ -295,10 +288,10 @@ Item {
         LaserIcon {
           id: pointerIcon
           x: root.service && pointerWindow.monitor
-            ? root.service.cursorX - pointerWindow.monitor.x - pointerAnchor.rect.x
+            ? root.service.cursorX - pointerWindow.monitor.x - pointerPopup.relativeX
             : 0
           y: root.service && pointerWindow.monitor
-            ? root.service.cursorY - pointerWindow.monitor.y - pointerAnchor.rect.y
+            ? root.service.cursorY - pointerWindow.monitor.y - pointerPopup.relativeY
             : 0
           iconSize: 20
           color: "#ffffff"
