@@ -4,7 +4,7 @@
   "name": "Laser Pointer",
   "version": "0.1.7",
   "author": "kvm404",
-  "description": "A click-through presentation laser pointer for the Omarchy bar.",
+  "description": "An Excalidraw-style laser pointer for presentations and screen sharing on Omarchy.",
   "kinds": [
     "service",
     "bar-widget",
