@@ -4,7 +4,7 @@
   "name": "Laser Pointer",
   "version": "0.2.0",
   "author": "kvm404",
-  "description": "A laser pointer for presentations and screen sharing on Omarchy.",
+  "description": "A presentation laser pointer with exclusive hold-to-draw input for the Omarchy bar.",
   "kinds": [
     "service",
     "bar-widget",

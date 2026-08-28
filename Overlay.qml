@@ -43,8 +43,10 @@ Item {
     cursorVisibilityProcess.running = true
   }
 
-  // One passive layer-shell surface per output. The empty input region keeps
-  // the pointer usable while the compositor hides the real cursor.
+  // One layer-shell surface per output. It becomes an input shield only while
+  // laser mode is active, so left-clicks belong to the laser instead of the
+  // application underneath. The bar remains outside the shield so its widget
+  // and popup controls stay usable.
   Variants {
     model: Quickshell.screens
 
@@ -65,7 +67,34 @@ Item {
       WlrLayershell.layer: WlrLayer.Overlay
       WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
       exclusionMode: ExclusionMode.Ignore
-      mask: Region {}
+
+      readonly property bool captureInput: root.opened && root.service
+        && root.service.active && !root.service.trailSuppressed
+      readonly property string barPosition: root.shell && root.shell.bar
+        ? String(root.shell.bar.position || "top") : "top"
+      readonly property int barSize: root.shell && root.shell.bar
+        && !root.shell.bar.barHidden
+        ? Math.max(0, Number(root.shell.bar.barSize) || 0) : 0
+
+      // Keep the Omarchy bar clickable. When the popup opens, BarWidget sets
+      // trailSuppressed and this region collapses so PopupCard receives input.
+      Item {
+        id: inputRegion
+        x: !pointerWindow.captureInput ? 0
+          : pointerWindow.barPosition === "left" ? pointerWindow.barSize : 0
+        y: !pointerWindow.captureInput ? 0
+          : pointerWindow.barPosition === "top" ? pointerWindow.barSize : 0
+        width: !pointerWindow.captureInput ? 0
+          : pointerWindow.barPosition === "left" || pointerWindow.barPosition === "right"
+            ? Math.max(0, pointerWindow.width - pointerWindow.barSize)
+            : pointerWindow.width
+        height: !pointerWindow.captureInput ? 0
+          : pointerWindow.barPosition === "top" || pointerWindow.barPosition === "bottom"
+            ? Math.max(0, pointerWindow.height - pointerWindow.barSize)
+            : pointerWindow.height
+      }
+
+      mask: Region { item: inputRegion }
 
       readonly property var monitor: Hyprland.monitorFor(modelData)
       readonly property bool cursorOnMonitor: root.service && monitor
@@ -73,6 +102,21 @@ Item {
         && root.service.cursorX < monitor.x + pointerWindow.width
         && root.service.cursorY >= monitor.y
         && root.service.cursorY < monitor.y + pointerWindow.height
+
+      MouseArea {
+        anchors.fill: inputRegion
+        enabled: pointerWindow.captureInput
+        acceptedButtons: Qt.LeftButton
+        onPressed: function(mouse) {
+          if (mouse.button === Qt.LeftButton && root.service)
+            root.service.beginMouseDraw()
+        }
+        onReleased: function(mouse) {
+          if (mouse.button === Qt.LeftButton && root.service)
+            root.service.endMouseDraw()
+        }
+        onCanceled: if (root.service) root.service.endMouseDraw()
+      }
 
       Canvas {
         id: trailCanvas
@@ -117,8 +161,10 @@ Item {
 
             var runEnd = i - 1
             if (runEnd >= runStart) {
-              var newest = points[runEnd]
-              var fade = Math.max(0, 1 - (now - newest.time) / lifetime)
+              var fade = root.service.mouseHeld ? 1.0
+                : root.service.trailFadeStartMs > 0
+                  ? Math.max(0, 1 - (now - root.service.trailFadeStartMs) / lifetime)
+                  : 0
               if (fade > 0) {
                 var first = points[runStart]
                 context.beginPath()

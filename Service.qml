@@ -13,6 +13,7 @@ Item {
   property bool active: false
   property bool mouseHeld: false
   property bool trailSuppressed: false
+  property double trailFadeStartMs: 0
   property color color: "#ff3b30"
   property int thickness: 3
   property int cursorX: 0
@@ -20,6 +21,7 @@ Item {
   property bool cursorReady: false
   property var trailPoints: []
   readonly property int trailLifetimeMs: 1000
+  readonly property int maximumTrailPoints: 12000
 
   function toggle() {
     if (root.shell && typeof root.shell.toggle === "function") {
@@ -40,7 +42,7 @@ Item {
     var now = Date.now()
     var next = root.trailPoints.slice()
 
-    while (next.length > 0 && now - next[0].time > root.trailLifetimeMs)
+    while (next.length >= root.maximumTrailPoints)
       next.shift()
 
     next.push({ x: x, y: y, time: now })
@@ -49,15 +51,32 @@ Item {
 
   function clearTrail() {
     root.trailPoints = []
+    root.trailFadeStartMs = 0
+  }
+
+  function beginMouseDraw() {
+    if (!root.active || root.trailSuppressed) return
+
+    // Start a fresh stroke. A previous stroke is already fading or has
+    // disappeared; keeping it would make the next hold inherit its age.
+    root.clearTrail()
+    root.mouseHeld = true
+  }
+
+  function endMouseDraw() {
+    if (!root.mouseHeld) return
+
+    root.mouseHeld = false
+    root.trailFadeStartMs = root.trailPoints.length > 0 ? Date.now() : 0
   }
 
   function pruneTrail() {
-    if (root.trailPoints.length === 0) return
+    if (root.mouseHeld || root.trailPoints.length === 0) return
 
-    var cutoff = Date.now() - root.trailLifetimeMs
-    var next = root.trailPoints.slice()
-    while (next.length > 0 && next[0].time < cutoff) next.shift()
-    if (next.length !== root.trailPoints.length) root.trailPoints = next
+    if (root.trailFadeStartMs > 0
+        && Date.now() - root.trailFadeStartMs >= root.trailLifetimeMs) {
+      root.clearTrail()
+    }
   }
 
   function updateCursor(raw) {
@@ -96,23 +115,6 @@ Item {
     }
   }
 
-  // Hyprland's optional static mouse bindings call these methods through the
-  // shell IPC endpoint. The bindings live in the user's Hyprland config; the
-  // plugin never installs or removes them at runtime.
-  IpcHandler {
-    target: root.pluginId
-
-    function mouseDown(): string {
-      root.mouseHeld = root.active && !root.trailSuppressed
-      return root.mouseHeld ? "pressed" : "ignored"
-    }
-
-    function mouseUp(): string {
-      root.mouseHeld = false
-      return "released"
-    }
-  }
-
   Process {
     id: cursorProcess
     command: ["hyprctl", "-j", "cursorpos"]
@@ -131,12 +133,12 @@ Item {
     if (root.active) {
       root.refreshCursor()
     } else {
-      root.mouseHeld = false
+      root.endMouseDraw()
       root.clearTrail()
     }
   }
 
   onTrailSuppressedChanged: {
-    if (root.trailSuppressed) root.mouseHeld = false
+    if (root.trailSuppressed) root.endMouseDraw()
   }
 }

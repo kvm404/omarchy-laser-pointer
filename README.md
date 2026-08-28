@@ -6,13 +6,13 @@ A laser pointer for presentations and screen sharing on Omarchy.
 
 ## Features
 
-- Fading trail drawn only while the left mouse button is held
+- Trail stays visible while left-click is held, then fades on release
 - Laser head positioned at the pointer hotspot
 - Hides the normal cursor while laser mode is on
 - Eight presentation-friendly colors
 - Adjustable trail thickness
 - Multi-monitor support
-- Click-through overlay that does not block the screen
+- Captures left-clicks only while laser mode is on
 
 ## Use
 
@@ -22,42 +22,15 @@ A laser pointer for presentations and screen sharing on Omarchy.
 - Right-click the laser icon to toggle laser mode quickly.
 - Click **Turn off pointer** to restore the normal cursor.
 
-## Enable click-to-draw
+## Interaction
 
-The click-through overlay cannot receive global mouse events directly on
-Wayland. To enable drawing while holding left-click, add these static bindings
-to `~/.config/hypr/bindings.lua`:
+When laser mode is on, the plugin captures left-clicks over the application
+area so text selection, link activation, and other normal click actions do not
+leak through. The Omarchy bar remains clickable, and opening the plugin popup
+temporarily releases the application-area capture so its color controls and
+thickness slider work normally.
 
-```lua
-o.bind(
-  "mouse:272",
-  "Laser pointer draw (press)",
-  "omarchy-shell -q io.github.kvm404.laser-pointer mouseDown",
-  { mouse = true, non_consuming = true }
-)
-
-o.bind(
-  "mouse:272",
-  "Laser pointer draw (release)",
-  "omarchy-shell -q io.github.kvm404.laser-pointer mouseUp",
-  { mouse = true, release = true, non_consuming = true }
-)
-```
-
-Then reload and validate Hyprland:
-
-```bash
-hyprctl reload
-hyprctl configerrors
-```
-
-These bindings are intentionally user-owned. The plugin does not edit
-Hyprland configuration, run `hyprctl repl`, or install/remove bindings while
-the shell is running. `non_consuming` keeps the original click available to
-the application, including the laser popup controls.
-
-Without these optional bindings, the laser head still works, but the trail
-does not draw.
+No Hyprland bindings or configuration changes are required.
 
 ## Install
 
