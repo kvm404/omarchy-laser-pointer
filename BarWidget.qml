@@ -36,6 +36,7 @@ BarWidget {
     if (laserService) {
       if (configured !== "") laserService.color = configured
       laserService.thickness = configuredThickness
+      laserService.trailSuppressed = root.popupOpen
     }
   }
 
@@ -81,6 +82,9 @@ BarWidget {
   onBarChanged: syncSettings()
   onSettingsChanged: syncSettings()
   onLaserServiceChanged: syncSettings()
+  onPopupOpenChanged: {
+    if (laserService) laserService.trailSuppressed = popupOpen
+  }
 
   WidgetButton {
     id: button

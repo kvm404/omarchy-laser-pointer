@@ -11,6 +11,8 @@ Item {
 
   readonly property string pluginId: "io.github.kvm404.laser-pointer"
   property bool active: false
+  property bool mouseHeld: false
+  property bool trailSuppressed: false
   property color color: "#ff3b30"
   property int thickness: 3
   property int cursorX: 0
@@ -49,6 +51,15 @@ Item {
     root.trailPoints = []
   }
 
+  function pruneTrail() {
+    if (root.trailPoints.length === 0) return
+
+    var cutoff = Date.now() - root.trailLifetimeMs
+    var next = root.trailPoints.slice()
+    while (next.length > 0 && next[0].time < cutoff) next.shift()
+    if (next.length !== root.trailPoints.length) root.trailPoints = next
+  }
+
   function updateCursor(raw) {
     var output = String(raw || "").trim()
     if (!output) return
@@ -66,7 +77,8 @@ Item {
 
         // The trail leaves ink only while the pointer is moving. The laser
         // head is rendered at the current cursor hotspot by Overlay.qml.
-        if (root.active && moved) root.appendTrailPoint(nextX, nextY)
+        if (root.active && root.mouseHeld && !root.trailSuppressed && moved)
+          root.appendTrailPoint(nextX, nextY)
       }
     } catch (error) {
       // Keep the last valid position. A transient hyprctl failure should not
@@ -78,7 +90,27 @@ Item {
     interval: 33
     repeat: true
     running: root.active
-    onTriggered: root.refreshCursor()
+    onTriggered: {
+      root.refreshCursor()
+      root.pruneTrail()
+    }
+  }
+
+  // Hyprland's optional static mouse bindings call these methods through the
+  // shell IPC endpoint. The bindings live in the user's Hyprland config; the
+  // plugin never installs or removes them at runtime.
+  IpcHandler {
+    target: root.pluginId
+
+    function mouseDown(): string {
+      root.mouseHeld = root.active && !root.trailSuppressed
+      return root.mouseHeld ? "pressed" : "ignored"
+    }
+
+    function mouseUp(): string {
+      root.mouseHeld = false
+      return "released"
+    }
   }
 
   Process {
@@ -99,7 +131,12 @@ Item {
     if (root.active) {
       root.refreshCursor()
     } else {
+      root.mouseHeld = false
       root.clearTrail()
     }
+  }
+
+  onTrailSuppressedChanged: {
+    if (root.trailSuppressed) root.mouseHeld = false
   }
 }
