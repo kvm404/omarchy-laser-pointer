@@ -12,7 +12,8 @@ Item {
   readonly property string pluginId: "io.github.kvm404.laser-pointer"
   property bool active: false
   property bool mouseHeld: false
-  property bool trailSuppressed: false
+  property var popupSuppressionOwners: []
+  readonly property bool trailSuppressed: root.popupSuppressionOwners.length > 0
   property color color: "#ff3b30"
   property int thickness: 3
   property int cursorX: 0
@@ -33,6 +34,19 @@ Item {
     // Makes the service harmless to instantiate outside the shell while
     // developing or linting the plugin.
     root.active = !root.active
+  }
+
+  function setPopupSuppression(owner, suppressed) {
+    if (!owner) return
+
+    var owners = root.popupSuppressionOwners.slice()
+    var index = owners.indexOf(owner)
+
+    if (suppressed && index < 0) owners.push(owner)
+    else if (!suppressed && index >= 0) owners.splice(index, 1)
+    else return
+
+    root.popupSuppressionOwners = owners
   }
 
   function refreshCursor() {

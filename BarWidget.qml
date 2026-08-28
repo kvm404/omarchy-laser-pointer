@@ -26,6 +26,26 @@ BarWidget {
     ? laserService.thickness
     : Number(setting("thickness", 3))
   property bool popupOpen: false
+  property var popupSuppressionService: null
+
+  function syncPopupSuppression() {
+    if (root.popupSuppressionService
+        && root.popupSuppressionService !== root.laserService
+        && typeof root.popupSuppressionService.setPopupSuppression === "function")
+      root.popupSuppressionService.setPopupSuppression(root, false)
+
+    root.popupSuppressionService = root.laserService
+    if (root.popupSuppressionService
+        && typeof root.popupSuppressionService.setPopupSuppression === "function")
+      root.popupSuppressionService.setPopupSuppression(root, root.popupOpen)
+  }
+
+  function releasePopupSuppression() {
+    if (root.popupSuppressionService
+        && typeof root.popupSuppressionService.setPopupSuppression === "function")
+      root.popupSuppressionService.setPopupSuppression(root, false)
+    root.popupSuppressionService = null
+  }
 
   function syncSettings() {
     var configured = setting("color", "")
@@ -36,8 +56,8 @@ BarWidget {
     if (laserService) {
       if (configured !== "") laserService.color = configured
       laserService.thickness = configuredThickness
-      laserService.trailSuppressed = root.popupOpen
     }
+    root.syncPopupSuppression()
   }
 
   function persistColor(value) {
@@ -86,9 +106,8 @@ BarWidget {
   onBarChanged: syncSettings()
   onSettingsChanged: syncSettings()
   onLaserServiceChanged: syncSettings()
-  onPopupOpenChanged: {
-    if (laserService) laserService.trailSuppressed = popupOpen
-  }
+  onPopupOpenChanged: root.syncPopupSuppression()
+  Component.onDestruction: root.releasePopupSuppression()
 
   WidgetButton {
     id: button
