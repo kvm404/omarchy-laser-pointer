@@ -138,18 +138,6 @@ BarWidget {
             font.pixelSize: Style.font.caption
             font.bold: true
           }
-
-          Text {
-            text: root.laserService && root.laserService.active
-              ? "Visible on the shared screen"
-              : "Ready for your next presentation"
-            color: root.bar.foreground
-            opacity: 0.65
-            font.family: root.bar.fontFamily
-            font.pixelSize: Style.font.bodySmall
-            elide: Text.ElideRight
-            width: parent.width
-          }
         }
       }
 
