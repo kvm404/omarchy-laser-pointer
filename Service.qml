@@ -20,7 +20,7 @@ Item {
   property bool cursorReady: false
   property var trailStrokes: []
   property var currentTrailPoints: []
-  readonly property int trailLifetimeMs: 1000
+  readonly property int trailLifetimeMs: 1500
   readonly property int maximumTrailPoints: 12000
   readonly property int maximumTrailStrokes: 64
 
