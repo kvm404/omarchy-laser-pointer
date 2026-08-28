@@ -63,7 +63,7 @@ Item {
         root.cursorY = nextY
         root.cursorReady = true
 
-        // Excalidraw leaves ink only while the pointer is moving. The laser
+        // The trail leaves ink only while the pointer is moving. The laser
         // head is rendered at the current cursor hotspot by Overlay.qml.
         if (root.active && moved) root.appendTrailPoint(nextX, nextY)
       }

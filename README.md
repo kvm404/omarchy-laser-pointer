@@ -1,14 +1,13 @@
 # Omarchy Laser Pointer
 
-An Excalidraw-style laser pointer for presentations and screen sharing on
-Omarchy.
+A laser pointer for presentations and screen sharing on Omarchy.
 
 ![Omarchy Laser Pointer preview](preview.png)
 
 ## Features
 
 - Fading trail that follows pointer movement
-- Excalidraw-style laser head
+- Laser head positioned at the pointer hotspot
 - Hides the normal cursor while laser mode is on
 - Eight presentation-friendly colors
 - Multi-monitor support
