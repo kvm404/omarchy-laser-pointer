@@ -203,15 +203,18 @@ Item {
             : 0
           iconSize: 20
           color: "#ffffff"
+          contrastOutline: true
         }
 
         Rectangle {
-          x: pointerIcon.x + 1
-          y: pointerIcon.y + 1
-          width: 4
+          x: pointerIcon.x
+          y: pointerIcon.y
+          width: 6
           height: width
           radius: width / 2
           color: root.service ? root.service.color : "#ff3b30"
+          border.color: "#101817"
+          border.width: 1
           z: 3
         }
       }
