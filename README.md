@@ -9,7 +9,7 @@ only one pointer is visible. Turning laser mode off restores the normal cursor.
 ## MVP controls
 
 - Left-click the bar widget to open the controls.
-- Choose red, orange, yellow, green, blue, purple, or white.
+- Choose red, orange, yellow, green, blue, cyan, purple, or white.
 - Use **Turn on pointer** / **Turn off pointer** to control laser mode.
 - Right-click the bar widget for a quick toggle.
 
@@ -86,6 +86,6 @@ qmllint -I "$OMARCHY_PATH/shell" \
 ## Current scope
 
 This first version intentionally keeps the interaction small: one fading trail,
-seven colors, a bar toggle, and multi-monitor placement. Keyboard shortcuts,
+eight colors, a bar toggle, and multi-monitor placement. Keyboard shortcuts,
 custom trail sizes, pressure-sensitive tapering, and publishing artwork can
 follow after the local MVP is proven in real presentations.

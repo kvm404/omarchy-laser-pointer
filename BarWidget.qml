@@ -15,6 +15,7 @@ BarWidget {
     "#ffd60a", // yellow
     "#30d158", // green
     "#0a84ff", // blue
+    "#64d2ff", // cyan
     "#bf5af2", // purple
     "#ffffff"  // white
   ]
@@ -172,8 +173,10 @@ BarWidget {
         font.bold: true
       }
 
-      Flow {
-        width: parent.width
+      Grid {
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: Style.space(4 * 28 + 3 * 6)
+        columns: 4
         spacing: Style.space(6)
 
         Repeater {
