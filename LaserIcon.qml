@@ -1,8 +1,8 @@
 import QtQuick
 import QtQuick.Shapes
 
-// The geometry is Excalidraw's laserPointerToolIcon, kept as a vector so the
-// same mark can be used in the bar and at the live pointer head.
+// Keep the laser-pointer mark as a vector so the same shape can be used in
+// the bar and at the live pointer head.
 Item {
   id: root
 

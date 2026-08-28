@@ -86,7 +86,7 @@ BarWidget {
         opacity: root.laserService && root.laserService.active ? 1 : 0.62
       }
 
-      // Excalidraw's cursor has a small coloured laser head at the hotspot.
+      // The cursor has a small coloured laser head at the hotspot.
       Rectangle {
         x: Style.space(1)
         y: Style.space(1)
