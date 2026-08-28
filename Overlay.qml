@@ -43,8 +43,10 @@ Item {
     cursorVisibilityProcess.running = true
   }
 
-  // One passive layer-shell surface per output. The empty input region keeps
-  // the pointer usable while the compositor hides the real cursor.
+  // One layer-shell surface per output. It becomes an input shield only while
+  // laser mode is active, so left-clicks belong to the laser instead of the
+  // application underneath. The bar remains outside the shield so its widget
+  // and popup controls stay usable.
   Variants {
     model: Quickshell.screens
 
@@ -65,7 +67,34 @@ Item {
       WlrLayershell.layer: WlrLayer.Overlay
       WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
       exclusionMode: ExclusionMode.Ignore
-      mask: Region {}
+
+      readonly property bool captureInput: root.opened && root.service
+        && root.service.active && !root.service.trailSuppressed
+      readonly property string barPosition: root.shell && root.shell.bar
+        ? String(root.shell.bar.position || "top") : "top"
+      readonly property int barSize: root.shell && root.shell.bar
+        && !root.shell.bar.barHidden
+        ? Math.max(0, Number(root.shell.bar.barSize) || 0) : 0
+
+      // Keep the Omarchy bar clickable. When the popup opens, BarWidget sets
+      // trailSuppressed and this region collapses so PopupCard receives input.
+      Item {
+        id: inputRegion
+        x: !pointerWindow.captureInput ? 0
+          : pointerWindow.barPosition === "left" ? pointerWindow.barSize : 0
+        y: !pointerWindow.captureInput ? 0
+          : pointerWindow.barPosition === "top" ? pointerWindow.barSize : 0
+        width: !pointerWindow.captureInput ? 0
+          : pointerWindow.barPosition === "left" || pointerWindow.barPosition === "right"
+            ? Math.max(0, pointerWindow.width - pointerWindow.barSize)
+            : pointerWindow.width
+        height: !pointerWindow.captureInput ? 0
+          : pointerWindow.barPosition === "top" || pointerWindow.barPosition === "bottom"
+            ? Math.max(0, pointerWindow.height - pointerWindow.barSize)
+            : pointerWindow.height
+      }
+
+      mask: Region { item: inputRegion }
 
       readonly property var monitor: Hyprland.monitorFor(modelData)
       readonly property bool cursorOnMonitor: root.service && monitor
@@ -73,6 +102,21 @@ Item {
         && root.service.cursorX < monitor.x + pointerWindow.width
         && root.service.cursorY >= monitor.y
         && root.service.cursorY < monitor.y + pointerWindow.height
+
+      MouseArea {
+        anchors.fill: inputRegion
+        enabled: pointerWindow.captureInput
+        acceptedButtons: Qt.LeftButton
+        onPressed: function(mouse) {
+          if (mouse.button === Qt.LeftButton && root.service)
+            root.service.beginMouseDraw()
+        }
+        onReleased: function(mouse) {
+          if (mouse.button === Qt.LeftButton && root.service)
+            root.service.endMouseDraw()
+        }
+        onCanceled: if (root.service) root.service.endMouseDraw()
+      }
 
       Canvas {
         id: trailCanvas
@@ -92,7 +136,14 @@ Item {
 
           if (!root.opened || !root.service || !pointerWindow.monitor) return
 
-          var points = root.service.trailPoints
+          var strokes = root.service.trailStrokes.slice()
+          if (root.service.mouseHeld && root.service.currentTrailPoints.length > 0) {
+            strokes.push({
+              points: root.service.currentTrailPoints,
+              fadeStartMs: 0,
+              active: true
+            })
+          }
           var now = Date.now()
           var lifetime = root.service.trailLifetimeMs
           var strokeColor = root.service.color
@@ -102,24 +153,31 @@ Item {
           context.lineCap = "round"
           context.lineJoin = "round"
 
-          // Stroke each on-screen run once. The popup contains only the head;
-          // keeping the trail in one canvas prevents overlapping paths when
-          // the pointer reaches an output edge.
-          var runStart = -1
-          for (var i = 0; i <= points.length; i++) {
-            var inRun = i < points.length && pointOnMonitor(points[i])
-            if (inRun) {
-              if (runStart < 0) runStart = i
-              continue
-            }
+          // Stroke each released/active stroke independently. This keeps a
+          // new hold from erasing a previous stroke or connecting two strokes.
+          for (var strokeIndex = 0; strokeIndex < strokes.length; strokeIndex++) {
+            var stroke = strokes[strokeIndex]
+            var points = stroke && stroke.points ? stroke.points : []
+            if (points.length === 0) continue
 
-            if (runStart < 0) continue
+            var fadeStartMs = Number(stroke.fadeStartMs) || 0
+            var fade = fadeStartMs > 0
+              ? Math.max(0, 1 - (now - fadeStartMs) / lifetime)
+              : stroke.active ? 1.0 : 0
+            if (fade <= 0) continue
 
-            var runEnd = i - 1
-            if (runEnd >= runStart) {
-              var newest = points[runEnd]
-              var fade = Math.max(0, 1 - (now - newest.time) / lifetime)
-              if (fade > 0) {
+            var runStart = -1
+            for (var i = 0; i <= points.length; i++) {
+              var inRun = i < points.length && pointOnMonitor(points[i])
+              if (inRun) {
+                if (runStart < 0) runStart = i
+                continue
+              }
+
+              if (runStart < 0) continue
+
+              var runEnd = i - 1
+              if (runEnd >= runStart) {
                 var first = points[runStart]
                 context.beginPath()
                 context.moveTo(first.x - monitorX, first.y - monitorY)
@@ -149,9 +207,9 @@ Item {
                 context.lineWidth = root.service.thickness
                 context.stroke()
               }
-            }
 
-            runStart = -1
+              runStart = -1
+            }
           }
         }
 
@@ -164,7 +222,8 @@ Item {
 
         Connections {
           target: root.service
-          function onTrailPointsChanged() { trailCanvas.requestPaint() }
+          function onTrailStrokesChanged() { trailCanvas.requestPaint() }
+          function onCurrentTrailPointsChanged() { trailCanvas.requestPaint() }
         }
       }
 

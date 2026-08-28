@@ -6,13 +6,14 @@ A laser pointer for presentations and screen sharing on Omarchy.
 
 ## Features
 
-- Fading trail that follows pointer movement
+- Trail stays visible while left-click is held, then fades on release
+- Recent strokes fade independently when a new stroke starts
 - Laser head positioned at the pointer hotspot
 - Hides the normal cursor while laser mode is on
 - Eight presentation-friendly colors
 - Adjustable trail thickness
 - Multi-monitor support
-- Click-through overlay that does not block the screen
+- Captures left-clicks only while laser mode is on
 
 ## Use
 
@@ -21,6 +22,16 @@ A laser pointer for presentations and screen sharing on Omarchy.
 - Adjust the trail thickness with the slider.
 - Right-click the laser icon to toggle laser mode quickly.
 - Click **Turn off pointer** to restore the normal cursor.
+
+## Interaction
+
+When laser mode is on, the plugin captures left-clicks over the application
+area so text selection, link activation, and other normal click actions do not
+leak through. The Omarchy bar remains clickable, and opening the plugin popup
+temporarily releases the application-area capture so its color controls and
+thickness slider work normally.
+
+No Hyprland bindings or configuration changes are required.
 
 ## Install
 

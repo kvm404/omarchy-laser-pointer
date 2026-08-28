@@ -26,6 +26,26 @@ BarWidget {
     ? laserService.thickness
     : Number(setting("thickness", 3))
   property bool popupOpen: false
+  property var popupSuppressionService: null
+
+  function syncPopupSuppression() {
+    if (root.popupSuppressionService
+        && root.popupSuppressionService !== root.laserService
+        && typeof root.popupSuppressionService.setPopupSuppression === "function")
+      root.popupSuppressionService.setPopupSuppression(root, false)
+
+    root.popupSuppressionService = root.laserService
+    if (root.popupSuppressionService
+        && typeof root.popupSuppressionService.setPopupSuppression === "function")
+      root.popupSuppressionService.setPopupSuppression(root, root.popupOpen)
+  }
+
+  function releasePopupSuppression() {
+    if (root.popupSuppressionService
+        && typeof root.popupSuppressionService.setPopupSuppression === "function")
+      root.popupSuppressionService.setPopupSuppression(root, false)
+    root.popupSuppressionService = null
+  }
 
   function syncSettings() {
     var configured = setting("color", "")
@@ -37,6 +57,7 @@ BarWidget {
       if (configured !== "") laserService.color = configured
       laserService.thickness = configuredThickness
     }
+    root.syncPopupSuppression()
   }
 
   function persistColor(value) {
@@ -68,7 +89,11 @@ BarWidget {
   }
 
   function togglePointer() {
-    if (laserService) laserService.toggle()
+    if (!laserService) return
+    laserService.toggle()
+    // Enter presentation mode immediately after using the popup action. The
+    // popup suppresses app-area input while open so its controls remain usable.
+    root.popupOpen = false
   }
 
   function close() {
@@ -81,6 +106,8 @@ BarWidget {
   onBarChanged: syncSettings()
   onSettingsChanged: syncSettings()
   onLaserServiceChanged: syncSettings()
+  onPopupOpenChanged: root.syncPopupSuppression()
+  Component.onDestruction: root.releasePopupSuppression()
 
   WidgetButton {
     id: button
