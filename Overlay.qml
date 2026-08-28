@@ -146,7 +146,7 @@ Item {
                   strokeColor.g,
                   strokeColor.b,
                   fade * 0.92)
-                context.lineWidth = 2.6
+                context.lineWidth = root.service.thickness
                 context.stroke()
               }
             }

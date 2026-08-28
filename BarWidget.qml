@@ -22,11 +22,21 @@ BarWidget {
   readonly property color selectedColor: laserService
     ? laserService.color
     : setting("color", "#ff3b30")
+  readonly property int selectedThickness: laserService
+    ? laserService.thickness
+    : Number(setting("thickness", 3))
   property bool popupOpen: false
 
   function syncSettings() {
     var configured = setting("color", "")
-    if (laserService && configured !== "") laserService.color = configured
+    var configuredThickness = Number(setting("thickness", 3))
+    if (!isFinite(configuredThickness)) configuredThickness = 3
+    configuredThickness = Math.max(2, Math.min(12, Math.round(configuredThickness)))
+
+    if (laserService) {
+      if (configured !== "") laserService.color = configured
+      laserService.thickness = configuredThickness
+    }
   }
 
   function persistColor(value) {
@@ -37,6 +47,21 @@ BarWidget {
     // Update the live service before writing shell.json so the overlay changes
     // on the same click as the swatch.
     if (laserService) laserService.color = value
+    root.settings = entry
+    if (root.bar && root.bar.shell && typeof root.bar.shell.updateEntryInline === "function")
+      root.bar.shell.updateEntryInline(root.moduleName, entry)
+  }
+
+  function setLiveThickness(value) {
+    if (laserService) laserService.thickness = Math.round(value)
+  }
+
+  function persistThickness(value) {
+    var entry = { id: root.moduleName }
+    for (var key in root.settings) if (key !== "id") entry[key] = root.settings[key]
+    entry.thickness = Math.max(2, Math.min(12, Math.round(value)))
+
+    if (laserService) laserService.thickness = entry.thickness
     root.settings = entry
     if (root.bar && root.bar.shell && typeof root.bar.shell.updateEntryInline === "function")
       root.bar.shell.updateEntryInline(root.moduleName, entry)
@@ -159,6 +184,47 @@ BarWidget {
         font.family: root.bar.fontFamily
         font.pixelSize: Style.font.caption
         font.bold: true
+      }
+
+      Row {
+        width: parent.width
+        spacing: Style.space(8)
+
+        Text {
+          text: "THICKNESS"
+          width: Style.space(70)
+          anchors.verticalCenter: parent.verticalCenter
+          color: root.bar.foreground
+          opacity: 0.7
+          font.family: root.bar.fontFamily
+          font.pixelSize: Style.font.caption
+          font.bold: true
+        }
+
+        PanelSlider {
+          id: thicknessSlider
+          width: parent.width - Style.space(112)
+          bar: root.bar
+          minimum: 2
+          maximum: 12
+          step: 1
+          integer: true
+          value: root.selectedThickness
+          tickCount: 6
+          onMoved: root.setLiveThickness(value)
+          onReleased: root.persistThickness(value)
+        }
+
+        Text {
+          text: root.selectedThickness + " px"
+          width: Style.space(34)
+          anchors.verticalCenter: parent.verticalCenter
+          color: root.bar.foreground
+          opacity: 0.75
+          font.family: root.bar.fontFamily
+          font.pixelSize: Style.font.caption
+          horizontalAlignment: Text.AlignRight
+        }
       }
 
       Grid {
