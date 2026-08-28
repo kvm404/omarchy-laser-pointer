@@ -12,6 +12,7 @@ Item {
   readonly property string pluginId: "io.github.kvm404.laser-pointer"
   property bool active: false
   property color color: "#ff3b30"
+  property int thickness: 3
   property int cursorX: 0
   property int cursorY: 0
   property bool cursorReady: false

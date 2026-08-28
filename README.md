@@ -10,6 +10,7 @@ A laser pointer for presentations and screen sharing on Omarchy.
 - Laser head positioned at the pointer hotspot
 - Hides the normal cursor while laser mode is on
 - Eight presentation-friendly colors
+- Adjustable trail thickness
 - Multi-monitor support
 - Click-through overlay that does not block the screen
 
@@ -17,6 +18,7 @@ A laser pointer for presentations and screen sharing on Omarchy.
 
 - Left-click the laser icon in the Omarchy bar to open the controls.
 - Choose a color and click **Turn on pointer**.
+- Adjust the trail thickness with the slider.
 - Right-click the laser icon to toggle laser mode quickly.
 - Click **Turn off pointer** to restore the normal cursor.
 
