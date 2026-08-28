@@ -69,7 +69,11 @@ BarWidget {
   }
 
   function togglePointer() {
-    if (laserService) laserService.toggle()
+    if (!laserService) return
+    laserService.toggle()
+    // Enter presentation mode immediately after using the popup action. The
+    // popup suppresses app-area input while open so its controls remain usable.
+    root.popupOpen = false
   }
 
   function close() {

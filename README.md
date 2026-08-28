@@ -7,6 +7,7 @@ A laser pointer for presentations and screen sharing on Omarchy.
 ## Features
 
 - Trail stays visible while left-click is held, then fades on release
+- Recent strokes fade independently when a new stroke starts
 - Laser head positioned at the pointer hotspot
 - Hides the normal cursor while laser mode is on
 - Eight presentation-friendly colors

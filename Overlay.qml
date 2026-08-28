@@ -136,7 +136,7 @@ Item {
 
           if (!root.opened || !root.service || !pointerWindow.monitor) return
 
-          var points = root.service.trailPoints
+          var strokes = root.service.trailStrokes
           var now = Date.now()
           var lifetime = root.service.trailLifetimeMs
           var strokeColor = root.service.color
@@ -146,26 +146,31 @@ Item {
           context.lineCap = "round"
           context.lineJoin = "round"
 
-          // Stroke each on-screen run once. The popup contains only the head;
-          // keeping the trail in one canvas prevents overlapping paths when
-          // the pointer reaches an output edge.
-          var runStart = -1
-          for (var i = 0; i <= points.length; i++) {
-            var inRun = i < points.length && pointOnMonitor(points[i])
-            if (inRun) {
-              if (runStart < 0) runStart = i
-              continue
-            }
+          // Stroke each released/active stroke independently. This keeps a
+          // new hold from erasing a previous stroke or connecting two strokes.
+          for (var strokeIndex = 0; strokeIndex < strokes.length; strokeIndex++) {
+            var stroke = strokes[strokeIndex]
+            var points = stroke && stroke.points ? stroke.points : []
+            if (points.length === 0) continue
 
-            if (runStart < 0) continue
+            var fadeStartMs = Number(stroke.fadeStartMs) || 0
+            var fade = fadeStartMs > 0
+              ? Math.max(0, 1 - (now - fadeStartMs) / lifetime)
+              : root.service.mouseHeld && strokeIndex === strokes.length - 1 ? 1.0 : 0
+            if (fade <= 0) continue
 
-            var runEnd = i - 1
-            if (runEnd >= runStart) {
-              var fade = root.service.mouseHeld ? 1.0
-                : root.service.trailFadeStartMs > 0
-                  ? Math.max(0, 1 - (now - root.service.trailFadeStartMs) / lifetime)
-                  : 0
-              if (fade > 0) {
+            var runStart = -1
+            for (var i = 0; i <= points.length; i++) {
+              var inRun = i < points.length && pointOnMonitor(points[i])
+              if (inRun) {
+                if (runStart < 0) runStart = i
+                continue
+              }
+
+              if (runStart < 0) continue
+
+              var runEnd = i - 1
+              if (runEnd >= runStart) {
                 var first = points[runStart]
                 context.beginPath()
                 context.moveTo(first.x - monitorX, first.y - monitorY)
@@ -195,9 +200,9 @@ Item {
                 context.lineWidth = root.service.thickness
                 context.stroke()
               }
-            }
 
-            runStart = -1
+              runStart = -1
+            }
           }
         }
 
@@ -210,7 +215,7 @@ Item {
 
         Connections {
           target: root.service
-          function onTrailPointsChanged() { trailCanvas.requestPaint() }
+          function onTrailStrokesChanged() { trailCanvas.requestPaint() }
         }
       }
 
