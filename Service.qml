@@ -11,12 +11,30 @@ Item {
 
   readonly property string pluginId: "io.github.kvm404.laser-pointer"
   property bool active: false
+  property bool mouseHeld: false
   property color color: "#ff3b30"
+  property int thickness: 3
   property int cursorX: 0
   property int cursorY: 0
   property bool cursorReady: false
   property var trailPoints: []
   readonly property int trailLifetimeMs: 1000
+
+  readonly property string installMouseBindsCommand:
+    "if _G.omarchy_laser_pointer_binds then "
+    + "for _, bind in ipairs(_G.omarchy_laser_pointer_binds) do bind:unbind() end "
+    + "end; "
+    + "_G.omarchy_laser_pointer_binds = { "
+    + "hl.bind('mouse:272', hl.dsp.exec_cmd('omarchy-shell -q " + root.pluginId
+    + " press'), { mouse = true, non_consuming = true, "
+    + "description = 'Laser pointer draw (press)' }), "
+    + "hl.bind('mouse:272', hl.dsp.exec_cmd('omarchy-shell -q " + root.pluginId
+    + " release'), { mouse = true, release = true, non_consuming = true, "
+    + "description = 'Laser pointer draw (release)' }) }"
+  readonly property string removeMouseBindsCommand:
+    "if _G.omarchy_laser_pointer_binds then "
+    + "for _, bind in ipairs(_G.omarchy_laser_pointer_binds) do bind:unbind() end; "
+    + "_G.omarchy_laser_pointer_binds = nil end"
 
   function toggle() {
     if (root.shell && typeof root.shell.toggle === "function") {
@@ -44,6 +62,15 @@ Item {
     root.trailPoints = next
   }
 
+  function pruneTrail() {
+    if (root.trailPoints.length === 0) return
+
+    var cutoff = Date.now() - root.trailLifetimeMs
+    var next = root.trailPoints.slice()
+    while (next.length > 0 && next[0].time < cutoff) next.shift()
+    if (next.length !== root.trailPoints.length) root.trailPoints = next
+  }
+
   function clearTrail() {
     root.trailPoints = []
   }
@@ -63,9 +90,9 @@ Item {
         root.cursorY = nextY
         root.cursorReady = true
 
-        // The trail leaves ink only while the pointer is moving. The laser
-        // head is rendered at the current cursor hotspot by Overlay.qml.
-        if (root.active && moved) root.appendTrailPoint(nextX, nextY)
+        // The trail leaves ink only while the left mouse button is held. The
+        // laser head is rendered at the current cursor hotspot by Overlay.qml.
+        if (root.active && root.mouseHeld && moved) root.appendTrailPoint(nextX, nextY)
       }
     } catch (error) {
       // Keep the last valid position. A transient hyprctl failure should not
@@ -77,7 +104,24 @@ Item {
     interval: 33
     repeat: true
     running: root.active
-    onTriggered: root.refreshCursor()
+    onTriggered: {
+      root.refreshCursor()
+      root.pruneTrail()
+    }
+  }
+
+  IpcHandler {
+    target: root.pluginId
+
+    function press(): string {
+      if (root.active) root.mouseHeld = true
+      return "pressed"
+    }
+
+    function release(): string {
+      root.mouseHeld = false
+      return "released"
+    }
   }
 
   Process {
@@ -98,7 +142,20 @@ Item {
     if (root.active) {
       root.refreshCursor()
     } else {
+      root.mouseHeld = false
       root.clearTrail()
     }
+  }
+
+  Process {
+    id: mouseBindProcess
+    command: ["hyprctl", "repl", root.installMouseBindsCommand]
+  }
+
+  Component.onCompleted: mouseBindProcess.running = true
+
+  Component.onDestruction: {
+    root.mouseHeld = false
+    Quickshell.execDetached(["hyprctl", "repl", root.removeMouseBindsCommand])
   }
 }

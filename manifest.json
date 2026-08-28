@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.kvm404.laser-pointer",
   "name": "Laser Pointer",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "author": "kvm404",
   "description": "A laser pointer for presentations and screen sharing on Omarchy.",
   "kinds": [
@@ -17,12 +17,13 @@
   },
   "barWidget": {
     "displayName": "Laser Pointer",
-    "description": "Toggle a screen-sharing laser pointer and choose its color.",
+    "description": "Toggle a presentation laser pointer, draw while holding left-click, and adjust color and thickness.",
     "category": "Presentation",
     "allowMultiple": false,
     "defaultSection": "right",
     "defaults": {
-      "color": "#ff3b30"
+      "color": "#ff3b30",
+      "thickness": 3
     }
   }
 }
