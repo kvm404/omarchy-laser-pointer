@@ -19,8 +19,10 @@ Item {
   property int cursorY: 0
   property bool cursorReady: false
   property var trailStrokes: []
+  property var currentTrailPoints: []
   readonly property int trailLifetimeMs: 1000
   readonly property int maximumTrailPoints: 12000
+  readonly property int maximumTrailStrokes: 64
 
   function toggle() {
     if (root.shell && typeof root.shell.toggle === "function") {
@@ -39,80 +41,46 @@ Item {
 
   function appendTrailPoint(x, y) {
     var now = Date.now()
-    if (root.trailStrokes.length === 0) return
+    if (!root.mouseHeld) return
 
-    var next = root.trailStrokes.slice()
-    var currentIndex = next.length - 1
-    var current = next[currentIndex]
-    var currentPoints = current.points.slice()
+    var currentPoints = root.currentTrailPoints.slice()
     currentPoints.push({ x: x, y: y, time: now })
-    next[currentIndex] = {
-      points: currentPoints,
-      fadeStartMs: current.fadeStartMs
-    }
 
-    var totalPoints = 0
-    for (var i = 0; i < next.length; i++)
-      totalPoints += next[i].points.length
+    // Bound a long hold without touching previously released strokes.
+    while (currentPoints.length > root.maximumTrailPoints)
+      currentPoints.shift()
 
-    // Bound total memory while preserving the newest strokes. In practice
-    // this only matters during an unusually long or very high-rate hold.
-    while (totalPoints > root.maximumTrailPoints && next.length > 0) {
-      var oldest = next[0]
-      if (oldest.points.length === 0) {
-        next.shift()
-        continue
-      }
-
-      var remaining = oldest.points.slice(1)
-      totalPoints -= 1
-      if (remaining.length === 0 && oldest.fadeStartMs > 0)
-        next.shift()
-      else
-        next[0] = { points: remaining, fadeStartMs: oldest.fadeStartMs }
-    }
-
-    root.trailStrokes = next
+    root.currentTrailPoints = currentPoints
   }
 
   function clearTrail() {
     root.trailStrokes = []
+    root.currentTrailPoints = []
   }
 
   function beginMouseDraw() {
     if (!root.active || root.trailSuppressed) return
 
-    // A compositor/pointer-grab transition can occasionally skip the release
-    // callback. Treat a new press as the end of that stale hold so its stroke
-    // starts fading instead of becoming an invisible orphan.
-    if (root.mouseHeld) root.endMouseDraw()
-
-    // Start a fresh stroke without clearing released strokes. Each stroke
-    // keeps its own release time so several recent strokes can fade together.
-    var next = root.trailStrokes.slice()
-    next.push({ points: [], fadeStartMs: 0 })
-    root.trailStrokes = next
+    // Finish any previous active stroke before starting a new one. Completed
+    // strokes live in a separate list, so a new hold cannot clear or hide one.
+    root.endMouseDraw()
+    root.currentTrailPoints = []
     root.mouseHeld = true
   }
 
   function endMouseDraw() {
-    if (!root.mouseHeld) return
+    if (!root.mouseHeld && root.currentTrailPoints.length === 0) return
 
     root.mouseHeld = false
-    if (root.trailStrokes.length === 0) return
+    if (root.currentTrailPoints.length === 0) return
 
     var next = root.trailStrokes.slice()
-    var currentIndex = next.length - 1
-    var current = next[currentIndex]
-    if (!current || current.points.length === 0) {
-      next.pop()
-    } else {
-      next[currentIndex] = {
-        points: current.points,
-        fadeStartMs: Date.now()
-      }
-    }
+    next.push({ points: root.currentTrailPoints, fadeStartMs: Date.now() })
+    while (next.length > root.maximumTrailStrokes)
+      next.shift()
+
     root.trailStrokes = next
+    root.currentTrailPoints = []
   }
 
   function pruneTrail() {
@@ -123,10 +91,8 @@ Item {
     var changed = false
     for (var i = 0; i < root.trailStrokes.length; i++) {
       var stroke = root.trailStrokes[i]
-      var isCurrentStroke = root.mouseHeld && i === root.trailStrokes.length - 1
       var fadeStartMs = Number(stroke.fadeStartMs) || 0
-      var stillVisible = isCurrentStroke
-        || (fadeStartMs > 0 && now - fadeStartMs < root.trailLifetimeMs)
+      var stillVisible = fadeStartMs > 0 && now - fadeStartMs < root.trailLifetimeMs
 
       if (stillVisible) next.push(stroke)
       else changed = true

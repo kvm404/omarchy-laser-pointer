@@ -136,7 +136,14 @@ Item {
 
           if (!root.opened || !root.service || !pointerWindow.monitor) return
 
-          var strokes = root.service.trailStrokes
+          var strokes = root.service.trailStrokes.slice()
+          if (root.service.mouseHeld && root.service.currentTrailPoints.length > 0) {
+            strokes.push({
+              points: root.service.currentTrailPoints,
+              fadeStartMs: 0,
+              active: true
+            })
+          }
           var now = Date.now()
           var lifetime = root.service.trailLifetimeMs
           var strokeColor = root.service.color
@@ -156,7 +163,7 @@ Item {
             var fadeStartMs = Number(stroke.fadeStartMs) || 0
             var fade = fadeStartMs > 0
               ? Math.max(0, 1 - (now - fadeStartMs) / lifetime)
-              : root.service.mouseHeld && strokeIndex === strokes.length - 1 ? 1.0 : 0
+              : stroke.active ? 1.0 : 0
             if (fade <= 0) continue
 
             var runStart = -1
@@ -216,6 +223,7 @@ Item {
         Connections {
           target: root.service
           function onTrailStrokesChanged() { trailCanvas.requestPaint() }
+          function onCurrentTrailPointsChanged() { trailCanvas.requestPaint() }
         }
       }
 
