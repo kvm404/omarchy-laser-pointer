@@ -203,7 +203,7 @@ BarWidget {
 
         PanelSlider {
           id: thicknessSlider
-          width: parent.width - Style.space(112)
+          width: parent.width - Style.space(120)
           bar: root.bar
           minimum: 2
           maximum: 12
