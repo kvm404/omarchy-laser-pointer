@@ -82,6 +82,11 @@ Item {
   function beginMouseDraw() {
     if (!root.active || root.trailSuppressed) return
 
+    // A compositor/pointer-grab transition can occasionally skip the release
+    // callback. Treat a new press as the end of that stale hold so its stroke
+    // starts fading instead of becoming an invisible orphan.
+    if (root.mouseHeld) root.endMouseDraw()
+
     // Start a fresh stroke without clearing released strokes. Each stroke
     // keeps its own release time so several recent strokes can fade together.
     var next = root.trailStrokes.slice()
