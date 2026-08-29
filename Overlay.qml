@@ -133,9 +133,6 @@ Item {
         onPaint: {
           var context = getContext("2d")
           context.clearRect(0, 0, width, height)
-          context.globalCompositeOperation = "source-over"
-          context.shadowBlur = 0
-          context.shadowColor = Qt.rgba(0, 0, 0, 0)
 
           if (!root.opened || !root.service || !pointerWindow.monitor) return
 
@@ -203,46 +200,23 @@ Item {
                   }
                 }
 
-                // Reuse the same smooth path for a soft halo, a saturated
-                // beam, and a subtle hot center. The blurred additive pass
-                // gives the colored edge a light-like falloff instead of a
-                // stack of solid translucent lines.
-                context.globalCompositeOperation = "lighter"
-                context.shadowBlur = Math.min(18, thickness + 10)
-                context.shadowColor = Qt.rgba(
-                  strokeColor.r,
-                  strokeColor.g,
-                  strokeColor.b,
-                  fade * 0.42)
+                // Reuse the same smooth path for a subtle color edge and a
+                // crisp core. Two ordinary strokes keep the effect light
+                // enough for a responsive full-screen overlay.
                 context.strokeStyle = Qt.rgba(
                   strokeColor.r,
                   strokeColor.g,
                   strokeColor.b,
-                  fade * 0.18)
-                context.lineWidth = thickness + 6
+                  fade * 0.24)
+                context.lineWidth = thickness + 4
                 context.stroke()
 
-                context.shadowBlur = 0
-                context.shadowColor = Qt.rgba(0, 0, 0, 0)
-                context.strokeStyle = Qt.rgba(
-                  strokeColor.r,
-                  strokeColor.g,
-                  strokeColor.b,
-                  fade * 0.34)
-                context.lineWidth = thickness + 2
-                context.stroke()
-
-                context.globalCompositeOperation = "source-over"
                 context.strokeStyle = Qt.rgba(
                   strokeColor.r,
                   strokeColor.g,
                   strokeColor.b,
                   fade * 0.98)
                 context.lineWidth = thickness
-                context.stroke()
-
-                context.strokeStyle = Qt.rgba(1, 1, 1, fade * 0.68)
-                context.lineWidth = Math.max(1, thickness * 0.32)
                 context.stroke()
               }
 
