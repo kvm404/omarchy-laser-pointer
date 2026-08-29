@@ -65,14 +65,14 @@ BarWidget {
     for (var key in root.settings) if (key !== "id") entry[key] = root.settings[key]
     entry.color = value
 
+    // Release popup input before updating settings so the next screen click
+    // reaches the laser overlay immediately.
+    root.closePopup()
+
     // Update the live service before writing shell.json so the overlay changes
     // on the same click as the swatch.
     if (laserService) laserService.color = value
     root.settings = entry
-
-    // Release the popup focus grab immediately so the next screen click
-    // reaches the laser overlay instead of dismissing the popup first.
-    root.popupOpen = false
 
     if (root.bar && root.bar.shell && typeof root.bar.shell.updateEntryInline === "function")
       root.bar.shell.updateEntryInline(root.moduleName, entry)
@@ -102,7 +102,12 @@ BarWidget {
   }
 
   function close() {
+    root.closePopup()
+  }
+
+  function closePopup() {
     root.popupOpen = false
+    root.releasePopupSuppression()
   }
 
   implicitWidth: button.implicitWidth
