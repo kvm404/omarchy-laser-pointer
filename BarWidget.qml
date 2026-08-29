@@ -26,6 +26,7 @@ BarWidget {
     ? laserService.thickness
     : Number(setting("thickness", 3))
   property bool popupOpen: false
+  property bool popupWasEntered: false
   property var popupSuppressionService: null
 
   function syncPopupSuppression() {
@@ -116,7 +117,10 @@ BarWidget {
   onBarChanged: syncSettings()
   onSettingsChanged: syncSettings()
   onLaserServiceChanged: syncSettings()
-  onPopupOpenChanged: root.syncPopupSuppression()
+  onPopupOpenChanged: {
+    if (!root.popupOpen) root.popupWasEntered = false
+    root.syncPopupSuppression()
+  }
   Component.onDestruction: root.releasePopupSuppression()
 
   WidgetButton {
@@ -169,6 +173,16 @@ BarWidget {
     open: root.popupOpen
     contentWidth: popup.fittedContentWidth(Style.space(236))
     contentHeight: popup.fittedContentHeight(panelColumn.implicitHeight)
+
+    // Keep the popup open while moving from the bar button into it. Once the
+    // pointer has entered the card, close it as soon as the pointer leaves.
+    onContainsMouseChanged: {
+      if (containsMouse) {
+        root.popupWasEntered = true
+      } else if (root.popupOpen && root.popupWasEntered) {
+        root.closePopup()
+      }
+    }
 
     Column {
       id: panelColumn
