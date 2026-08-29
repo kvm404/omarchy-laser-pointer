@@ -149,6 +149,7 @@ Item {
           var strokeColor = root.service.color
           var monitorX = pointerWindow.monitor.x
           var monitorY = pointerWindow.monitor.y
+          var thickness = Math.max(1, Number(root.service.thickness) || 3)
 
           context.lineCap = "round"
           context.lineJoin = "round"
@@ -199,12 +200,35 @@ Item {
                   }
                 }
 
+                // Reuse the same smooth path for a soft halo, a saturated
+                // beam, and a subtle hot center. This keeps the laser effect
+                // lightweight while making it read as light instead of ink.
                 context.strokeStyle = Qt.rgba(
                   strokeColor.r,
                   strokeColor.g,
                   strokeColor.b,
-                  fade * 0.92)
-                context.lineWidth = root.service.thickness
+                  fade * 0.18)
+                context.lineWidth = thickness + 8
+                context.stroke()
+
+                context.strokeStyle = Qt.rgba(
+                  strokeColor.r,
+                  strokeColor.g,
+                  strokeColor.b,
+                  fade * 0.34)
+                context.lineWidth = thickness + 4
+                context.stroke()
+
+                context.strokeStyle = Qt.rgba(
+                  strokeColor.r,
+                  strokeColor.g,
+                  strokeColor.b,
+                  fade * 0.94)
+                context.lineWidth = thickness
+                context.stroke()
+
+                context.strokeStyle = Qt.rgba(1, 1, 1, fade * 0.52)
+                context.lineWidth = Math.max(1, thickness * 0.38)
                 context.stroke()
               }
 
