@@ -4,7 +4,7 @@
   "name": "Laser Pointer",
   "version": "0.2.0",
   "author": "kvm404",
-  "description": "A presentation laser pointer with exclusive hold-to-draw input for the Omarchy bar.",
+  "description": "A simple laser pointer for presentations and screen sharing.",
   "kinds": [
     "service",
     "bar-widget",
@@ -17,7 +17,7 @@
   },
   "barWidget": {
     "displayName": "Laser Pointer",
-    "description": "Draw a presentation laser trail while holding left-click, with adjustable color and thickness.",
+    "description": "Draw a fading trail while holding left-click.",
     "category": "Presentation",
     "allowMultiple": false,
     "defaultSection": "right",
