@@ -66,10 +66,6 @@ BarWidget {
     for (var key in root.settings) if (key !== "id") entry[key] = root.settings[key]
     entry.color = value
 
-    // Release popup input before updating settings so the next screen click
-    // reaches the laser overlay immediately.
-    root.closePopup()
-
     // Update the live service before writing shell.json so the overlay changes
     // on the same click as the swatch.
     if (laserService) laserService.color = value
