@@ -69,6 +69,7 @@ BarWidget {
     // on the same click as the swatch.
     if (laserService) laserService.color = value
     root.settings = entry
+
     if (root.bar && root.bar.shell && typeof root.bar.shell.updateEntryInline === "function")
       root.bar.shell.updateEntryInline(root.moduleName, entry)
   }
@@ -97,7 +98,26 @@ BarWidget {
   }
 
   function close() {
+    root.closePopup()
+  }
+
+  function closePopup() {
     root.popupOpen = false
+    root.releasePopupSuppression()
+  }
+
+  function schedulePopupClose() {
+    if (root.popupOpen) popupCloseTimer.restart()
+  }
+
+  Timer {
+    id: popupCloseTimer
+    interval: 200
+    repeat: false
+    onTriggered: {
+      if (root.popupOpen && !button.tooltipHovered && !popup.containsMouse)
+        root.closePopup()
+    }
   }
 
   implicitWidth: button.implicitWidth
@@ -106,7 +126,11 @@ BarWidget {
   onBarChanged: syncSettings()
   onSettingsChanged: syncSettings()
   onLaserServiceChanged: syncSettings()
-  onPopupOpenChanged: root.syncPopupSuppression()
+  onPopupOpenChanged: {
+    if (!root.popupOpen) popupCloseTimer.stop()
+    else if (!button.tooltipHovered && !popup.containsMouse) root.schedulePopupClose()
+    root.syncPopupSuppression()
+  }
   Component.onDestruction: root.releasePopupSuppression()
 
   WidgetButton {
@@ -125,6 +149,11 @@ BarWidget {
     onPressed: function(buttonId) {
       if (buttonId === Qt.RightButton) root.togglePointer()
       else if (buttonId === Qt.LeftButton) root.popupOpen = !root.popupOpen
+    }
+
+    onTooltipHoveredChanged: {
+      if (tooltipHovered) popupCloseTimer.stop()
+      else root.schedulePopupClose()
     }
 
     Item {
@@ -159,6 +188,13 @@ BarWidget {
     open: root.popupOpen
     contentWidth: popup.fittedContentWidth(Style.space(236))
     contentHeight: popup.fittedContentHeight(panelColumn.implicitHeight)
+
+    // Keep the popup open while moving between the bar button and the card.
+    // A short grace period bridges the gap between their separate windows.
+    onContainsMouseChanged: {
+      if (containsMouse) popupCloseTimer.stop()
+      else root.schedulePopupClose()
+    }
 
     Column {
       id: panelColumn
