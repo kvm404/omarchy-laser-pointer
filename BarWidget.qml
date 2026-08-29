@@ -26,7 +26,6 @@ BarWidget {
     ? laserService.thickness
     : Number(setting("thickness", 3))
   property bool popupOpen: false
-  property bool popupWasEntered: false
   property var popupSuppressionService: null
 
   function syncPopupSuppression() {
@@ -107,6 +106,20 @@ BarWidget {
     root.releasePopupSuppression()
   }
 
+  function schedulePopupClose() {
+    if (root.popupOpen) popupCloseTimer.restart()
+  }
+
+  Timer {
+    id: popupCloseTimer
+    interval: 200
+    repeat: false
+    onTriggered: {
+      if (root.popupOpen && !button.tooltipHovered && !popup.containsMouse)
+        root.closePopup()
+    }
+  }
+
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
 
@@ -114,7 +127,8 @@ BarWidget {
   onSettingsChanged: syncSettings()
   onLaserServiceChanged: syncSettings()
   onPopupOpenChanged: {
-    if (!root.popupOpen) root.popupWasEntered = false
+    if (!root.popupOpen) popupCloseTimer.stop()
+    else if (!button.tooltipHovered && !popup.containsMouse) root.schedulePopupClose()
     root.syncPopupSuppression()
   }
   Component.onDestruction: root.releasePopupSuppression()
@@ -135,6 +149,11 @@ BarWidget {
     onPressed: function(buttonId) {
       if (buttonId === Qt.RightButton) root.togglePointer()
       else if (buttonId === Qt.LeftButton) root.popupOpen = !root.popupOpen
+    }
+
+    onTooltipHoveredChanged: {
+      if (tooltipHovered) popupCloseTimer.stop()
+      else root.schedulePopupClose()
     }
 
     Item {
@@ -170,14 +189,11 @@ BarWidget {
     contentWidth: popup.fittedContentWidth(Style.space(236))
     contentHeight: popup.fittedContentHeight(panelColumn.implicitHeight)
 
-    // Keep the popup open while moving from the bar button into it. Once the
-    // pointer has entered the card, close it as soon as the pointer leaves.
+    // Keep the popup open while moving between the bar button and the card.
+    // A short grace period bridges the gap between their separate windows.
     onContainsMouseChanged: {
-      if (containsMouse) {
-        root.popupWasEntered = true
-      } else if (root.popupOpen && root.popupWasEntered) {
-        root.closePopup()
-      }
+      if (containsMouse) popupCloseTimer.stop()
+      else root.schedulePopupClose()
     }
 
     Column {
