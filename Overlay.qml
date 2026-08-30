@@ -149,6 +149,7 @@ Item {
           var strokeColor = root.service.color
           var monitorX = pointerWindow.monitor.x
           var monitorY = pointerWindow.monitor.y
+          var thickness = Math.max(1, Number(root.service.thickness) || 3)
 
           context.lineCap = "round"
           context.lineJoin = "round"
@@ -199,12 +200,23 @@ Item {
                   }
                 }
 
+                // Reuse the same smooth path for a subtle color edge and a
+                // crisp core. Two ordinary strokes keep the effect light
+                // enough for a responsive full-screen overlay.
                 context.strokeStyle = Qt.rgba(
                   strokeColor.r,
                   strokeColor.g,
                   strokeColor.b,
-                  fade * 0.92)
-                context.lineWidth = root.service.thickness
+                  fade * 0.24)
+                context.lineWidth = thickness + 4
+                context.stroke()
+
+                context.strokeStyle = Qt.rgba(
+                  strokeColor.r,
+                  strokeColor.g,
+                  strokeColor.b,
+                  fade * 0.98)
+                context.lineWidth = thickness
                 context.stroke()
               }
 
