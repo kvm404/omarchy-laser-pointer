@@ -41,10 +41,13 @@ Item {
   // reloads Hyprland. Close the active overlay before the compositor reload
   // can recreate the normal cursor alongside the laser cursor.
   FileView {
-    path: Quickshell.env("HOME") + "/.local/state/omarchy/current"
+    path: Quickshell.env("HOME") + "/.local/state/omarchy/current/theme.name"
     watchChanges: true
     printErrors: false
-    onFileChanged: root.closeForThemeChange()
+    onFileChanged: {
+      root.closeForThemeChange()
+      reload()
+    }
   }
 
   // Omarchy's shell applies the new palette through IPC, so this catches
