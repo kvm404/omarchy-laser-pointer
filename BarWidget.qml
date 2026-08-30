@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Shapes
 import Quickshell
+import Quickshell.Io
 import qs.Commons
 import qs.Ui
 
@@ -97,6 +98,16 @@ BarWidget {
     root.popupOpen = false
   }
 
+  function disableForThemeChange() {
+    if (!root.laserService || !root.laserService.active) return
+
+    root.closePopup()
+    if (root.bar && root.bar.shell && typeof root.bar.shell.hide === "function")
+      root.bar.shell.hide(root.moduleName)
+    else
+      root.laserService.active = false
+  }
+
   function close() {
     root.closePopup()
   }
@@ -104,6 +115,22 @@ BarWidget {
   function closePopup() {
     root.popupOpen = false
     root.releasePopupSuppression()
+  }
+
+  Connections {
+    target: Color
+    function onShellValuesChanged() { root.disableForThemeChange() }
+  }
+
+  FileView {
+    id: themeFile
+    path: Quickshell.env("HOME") + "/.local/state/omarchy/current/theme.name"
+    watchChanges: true
+    printErrors: false
+    onFileChanged: {
+      root.disableForThemeChange()
+      reload()
+    }
   }
 
   function schedulePopupClose() {
