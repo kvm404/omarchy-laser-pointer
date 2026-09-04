@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
 import Quickshell.Wayland
+import qs.Commons
 
 Item {
   id: root
@@ -29,6 +30,37 @@ Item {
     root.setCursorHidden(false)
     if (root.service) {
       root.service.active = false
+    }
+  }
+
+  function closeForThemeChange() {
+    if (root.opened) root.close()
+  }
+
+  // Theme switching replaces files below this stable directory and then
+  // reloads Hyprland. Close the active overlay before the compositor reload
+  // can recreate the normal cursor alongside the laser cursor.
+  FileView {
+    path: Quickshell.env("HOME") + "/.local/state/omarchy/current/theme.name"
+    watchChanges: true
+    printErrors: false
+    onFileChanged: {
+      root.closeForThemeChange()
+      reload()
+    }
+  }
+
+  // Omarchy's shell applies the new palette through IPC, so this catches
+  // theme changes even when no filesystem notification is delivered.
+  Connections {
+    target: Color
+    function onShellValuesChanged() { root.closeForThemeChange() }
+  }
+
+  Connections {
+    target: root.service
+    function onActiveChanged() {
+      if (root.service && !root.service.active) root.closeForThemeChange()
     }
   }
 
