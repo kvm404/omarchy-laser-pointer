@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.kvm404.laser-pointer",
   "name": "Laser Pointer",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": "kvm404",
   "description": "A simple laser pointer for presentations and screen sharing.",
   "kinds": [
